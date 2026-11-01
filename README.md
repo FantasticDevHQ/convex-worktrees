@@ -11,46 +11,83 @@ The scripts run noninteractively in editors, coding agents and CI. Local develop
 Copy this prompt into your coding agent while it is working in your application:
 
 ```text
-Set up local Convex worktrees in this application using:
+Set up this application's local Convex worktree workflow end to end using:
 https://github.com/FantasticDevHQ/convex-worktrees
 
-Read this repository's agent instructions and the toolkit README first. Inspect
-our existing worktree tooling, Convex/frontend layout, packageManager field and
-lockfiles. Use our existing Bun, pnpm or npm setup and preserve its lockfile and
-dependency-build policy. In a Convex Turborepo, keep the backend in
-packages/backend.
+1. Read the target application's root and applicable nested AGENTS.md files
+   before editing, wherever present. Read AGENT.md too if this project uses it.
+   Inspect Git status, existing worktree scripts, Convex/frontend paths, schema,
+   components, required local environment variables, packageManager, committed
+   lockfiles and dependency-build settings. Discover origin's live advertised
+   default branch and inspect any baseBranch override in the worktree config.
+   Work on a clean adoption branch or worktree. Preserve user changes; do not
+   commit unrelated work.
 
-Install or carefully merge the toolkit under scripts/worktree/, including its
-tests. Configure the layout and local environment defaults, add package scripts
-and ignore rules, and adapt the optional frontend command if we do not use
-Next.js. Preserve unrelated files, existing settings and user changes. Use
-independent local anonymous backends with stable ports; do not provision cloud
-deployments, copy production credentials or kill processes by port/name.
+2. Clone the toolkit outside this application and inspect its README and source.
+   Run node scripts/check.mjs from the toolkit checkout. Install with
+   node "<toolkit-path>/install.mjs" "<application-root>", or merge existing tooling
+   carefully when the installer refuses an overwrite. Keep implementation and
+   all worktree tests under scripts/worktree/.
 
-Follow this repository's change/review workflow and keep the checkout clean
-before running setup. Run the toolkit tests and verify local setup/start plus
-sibling-safe teardown. Where practical, verify two concurrent backends and
-restart persistence. Do not claim checks that were not run. The adoption changes
-must land on origin/main before testing new worktrees created from main.
+3. Configure scripts/worktree.config.json for this application's existing paths
+   and synthetic local defaults required by its schema/components. Resolve the
+   base branch from origin's advertised default, or set baseBranch explicitly
+   when this app uses another integration branch. Do not assume main. Add the
+   lifecycle/test package scripts and generated-state ignore rules while
+   preserving existing settings. Keep the
+   current package manager, lockfile, build policy and production/deployment
+   configuration. Resolve ambiguous manager selection before installing. Do not
+   upgrade dependencies or migrate the app's layout/framework as part of this
+   task. For an existing Convex Turborepo, use its packages/backend convention.
+   Adapt the optional frontend command only if needed for the current framework.
+   Install application dependencies with its detected manager's frozen/locked
+   command. Do not create another manager's lockfile. Prepare local-only probe
+   fixtures and generated code needed for testing before committing test changes.
 
-Finish by listing the changed files, exact setup/start/stop/teardown commands for
-our package manager, checks performed and any remaining limitations.
+4. Follow the application's review workflow and commit only adoption changes so
+   setup can run from a clean checkout. From the application root, run:
+   node --test scripts/worktree/*.test.mjs
+   node scripts/worktree/cli.mjs setup
+   node scripts/worktree/cli.mjs start
+   node scripts/worktree/cli.mjs stop
+   node scripts/worktree/cli.mjs setup
+   node scripts/worktree/cli.mjs start
+   Verify repeated setup/restart preserves ports, generated configuration and
+   local data. Use disposable test state to verify two real backends have
+   isolated rows and teardown/cleanup leaves the sibling running. Adapt the
+   supplied local probe examples and run:
+   node --test scripts/worktree/worktree.integration.mjs
+   node scripts/worktree/cli.mjs teardown
+   Use cleanup --yes only for disposable state whose ownership you verified.
+
+5. Prepare the adoption PR and follow this application's review/merge policy.
+   Test setup --path for a new worktree only after the adoption
+   changes land on the selected origin base branch. If merging, network access,
+   authentication or platform support blocks a check, report it and leave that
+   check incomplete.
+   Do not bypass safeguards or claim verification that did not happen.
+
+Use project-local anonymous backends and stable allocated ports. Do not create
+cloud development deployments, copy production secrets or kill by port/name.
+
+Finish with actual changed paths, the detected package manager, exact commands
+for this app, checks passed/not run, and remaining PR/merge steps or blockers.
 ```
 
 ### Manual setup
 
-You need Node.js 22+, Python 3, Git, your application's package manager and an existing Convex application. Use a clean adoption branch and follow your application's change workflow.
+You need Node.js 22+, Git, your application's package manager and an existing Convex application. Use a clean adoption branch and follow your application's change workflow.
 
 1. From your application root, copy the toolkit into it:
 
    ```sh
    git clone https://github.com/FantasticDevHQ/convex-worktrees.git ../convex-worktrees-kit
-   python3 ../convex-worktrees-kit/install.py .
+   node ../convex-worktrees-kit/install.mjs .
    ```
 
    Choose another clone path if that directory already exists. The installer verifies checksums and refuses existing destination files or symlinked paths. Merge existing worktree tooling manually rather than overwriting it.
 
-2. Set `backend` and `frontend` in `scripts/worktree.config.json`. The defaults are `packages/backend` and `apps/web`; a single-package app can use `.`. Add the [package scripts](#package-scripts), ignore generated state and configure any required local environment defaults. See [configuration](#configure-the-layout) for the full fields.
+2. Set `backend` and `frontend` in `scripts/worktree.config.json`. The defaults are `packages/backend` and `apps/web`; a single-package app can use `.`. Setup discovers the default branch advertised by `origin`; set optional `baseBranch` if you want another branch. Add the [package scripts](#package-scripts), ignore generated state and configure any required local environment defaults. See [configuration](#configure-the-layout) for the full fields.
 
 3. Install your application's dependencies with its existing manager:
 
@@ -65,13 +102,14 @@ You need Node.js 22+, Python 3, Git, your application's package manager and an e
 4. Commit the adoption changes so the checkout is clean, then provision and start the local backend:
 
    ```sh
+   node --test scripts/worktree/*.test.mjs
    node scripts/worktree/cli.mjs setup
    node scripts/worktree/cli.mjs start
    # Optional Next.js frontend alongside the backend:
    # node scripts/worktree/cli.mjs start --frontend
    ```
 
-   Setup fetches `origin/main`; it stops for fetch failures, dirty files or divergence instead of discarding changes. Merge and push the adoption changes onto `origin/main` before [creating a new worktree](#daily-use), since new checkouts start from that remote branch.
+   Setup resolves and fetches the selected base branch from `origin`; it stops for resolution/fetch failures, dirty files or divergence instead of discarding changes. Merge and push the adoption changes onto that remote branch before [creating a new worktree](#daily-use), since new checkouts start from the fetched base.
 
 To stop and release this checkout's ports while keeping its database:
 
@@ -81,10 +119,10 @@ node scripts/worktree/cli.mjs teardown
 
 ## Requirements
 
-- Node.js 22+, Python 3 for the installer, Git and your application's package manager: Bun, pnpm or npm. The selected manager must be available on PATH.
+- Node.js 22+, Git and your application's package manager: Bun, pnpm or npm. The selected manager must be available on PATH.
 - An existing Convex application. Install Convex in the backend workspace or repository root. The toolkit resolves its installed CLI, including pnpm's isolated workspace layout. The optional Next.js CLI resolves from the frontend workspace, then the root.
 - macOS or modern Linux with a compatible glibc/C++ runtime for the Convex binary. Native Windows process checks are not supported; use WSL.
-- Network access for fetching main, installing dependencies and the initial Convex binary/dashboard download.
+- Network access for resolving/fetching the remote base branch, installing dependencies and the initial Convex binary/dashboard download.
 
 The optional frontend commands currently target Next.js. Adapt `commands.mjs` and `processes.mjs` for another frontend. Backend-only operation does not start the frontend.
 
@@ -104,10 +142,25 @@ A single-package app can set `backend` and `frontend` to `.`. Configure these fi
 | Field | Purpose |
 | --- | --- |
 | `backend`, `frontend` | Paths relative to the repository root. |
+| `baseBranch` | Optional branch name on `origin`, such as `master`, `masters` or `develop`. Without it, setup uses the remote's live advertised default branch. |
 | `env` | Synthetic local backend environment defaults required by your schema. |
 | `secretEnv` | Names of values generated once per checkout and retained across repeated setup. |
 | `siteUrlEnv` | Backend variables that should contain this checkout's frontend URL. |
 | `bootstrapMissingEnv` | Specific missing-variable errors allowed only on the first push, before defaults are seeded and a final successful push is required. |
+
+The remote is `origin`. Setup resolves its live symbolic default branch unless `baseBranch` is set; it does not assume a branch named `main`. For a non-default integration branch, add a branch name to the adapter, for example:
+
+```json
+{
+  "backend": "packages/backend",
+  "frontend": "apps/web",
+  "baseBranch": "develop"
+}
+```
+
+If the default cannot be resolved or the selected branch cannot be fetched, setup stops clearly. Use an explicit `baseBranch` when the remote does not advertise a default. Both existing-checkout refresh and new-worktree creation use the same resolved remote base.
+
+An existing local base branch is fast-forwarded only when safe, including when it is checked out in a sibling worktree. New-worktree creation uses the fetched commit without merging it into a different caller branch.
 
 The environment defaults start empty. Add only what your app needs. Never put production credentials in the configuration. External integrations require separate test credentials and verification; successful schema deployment does not test them.
 
@@ -131,7 +184,7 @@ Merge these scripts into your application's root `package.json`:
 }
 ```
 
-Ignore `.worktree/`, backend `.convex/` local state and generated `.env.local` files, preserving your existing ignore rules. Commit the adoption changes before setup so the application checkout is clean. Merge and push them to `origin/main` before creating new worktrees from main; those checkouts need the tooling and configuration too.
+Ignore `.worktree/`, backend `.convex/` local state and generated `.env.local` files, preserving your existing ignore rules. Commit the adoption changes before setup so the application checkout is clean. Merge and push them to the selected base branch on `origin` before creating new worktrees; those checkouts need the tooling and configuration too.
 
 ## Package-manager selection
 
@@ -149,7 +202,7 @@ Install command references: [Bun](https://bun.sh/docs/pm/cli/install), [pnpm](ht
 
 ## Daily use
 
-Once the tooling is on `origin/main`, create and provision a new branch and checkout:
+Once the tooling is on the selected base branch on `origin`, create and provision a new branch and checkout from its freshly fetched remote ref:
 
 ```sh
 node scripts/worktree/cli.mjs setup --path ../app-feature --branch feature/my-change
@@ -169,7 +222,7 @@ After adding the package scripts, use your manager's runner:
 
 For npm, put `--` before lifecycle arguments, for example `npm run worktree:setup -- --path ../app-feature --branch feature/my-change`. Direct Node commands work with all three managers.
 
-Setup fetches `origin/main` and stops on fetch failure. It fast-forwards stale checkouts and local main when safe, and preserves topic commits already based on fetched main. Dirty files or divergence stop setup rather than resetting, stashing or discarding changes. Rebase or merge deliberately, then retry. If your default branch has another name, adapt `freshness.mjs`.
+Setup resolves the remote default or explicit `baseBranch`, fetches it from `origin` and stops on resolution or fetch failure. It fast-forwards stale checkouts and the corresponding local base branch when safe, and preserves topic commits already based on the fetched base. Dirty files or divergence stop setup rather than resetting, stashing or discarding changes. Rebase or merge deliberately, then retry.
 
 ## Stop, teardown and cleanup
 
@@ -208,26 +261,24 @@ With the sample layout, the database is in `packages/backend/.convex/local/defau
 
 Use the same lifecycle from any tool that runs shell commands. A setup hook should install dependencies and run setup, then exit. A teardown hook should run `node scripts/worktree/cli.mjs teardown` before removing the checkout.
 
-For CI, provide an accessible `origin/main` and enough Git history for ancestry checks. Install Git, Node and the selected package manager, then run setup/start, your tests and teardown in an always-run cleanup step. Abrupt machine termination cannot guarantee cleanup, so prune stale reservations on persistent hosts. CI runner selection belongs to the consuming application.
+For CI, provide access to `origin`, its advertised default branch or configured `baseBranch`, and enough Git history for ancestry checks. Install Git, Node and the selected package manager, then run setup/start, your tests and teardown in an always-run cleanup step. Abrupt machine termination cannot guarantee cleanup, so prune stale reservations on persistent hosts. CI runner selection belongs to the consuming application.
 
 ## Tests
 
 From this toolkit repository:
 
 ```sh
-npm run check:all
-# Or: pnpm run check:all
-# Or: bun run check:all
+node scripts/check.mjs
 ```
 
-This runs the dependency-free lifecycle/freshness tests and verifies installation, hashes, overwrite refusal and symlink refusal. No dependency install is required for these toolkit checks; Node.js and Python 3 are sufficient. The check command does not invoke a different package manager.
+This runs the dependency-free lifecycle/freshness tests and verifies installation, hashes, overwrite refusal and symlink refusal. The toolkit checks and installer use Node built-ins; no separate installer runtime or dependency install is required. The check command does not invoke a package manager.
 
 The optional real-backend integration test runs inside a consuming application, not this toolkit. It is skipped here because there is no application backend. To use it:
 
 1. Merge the table in `examples/schema.ts` into your application's Convex schema.
 2. Copy `examples/probe.ts` into your app's Convex function directory as `probe.ts`.
 3. Keep these probe functions local to your development/test backend; they are unauthenticated and are not intended for a public deployment.
-4. Commit the test setup and required lockfile to the app's main branch, then run `node --test scripts/worktree/worktree.integration.mjs` from a clean app checkout.
+4. Commit the test setup and required lockfile to the app's selected remote base branch, then run `node --test scripts/worktree/worktree.integration.mjs` from a clean app checkout.
 
 The integration test deploys the app schema in two temporary worktrees, writes different probe records, verifies database isolation and restart persistence, tests busy-port refusal and checks sibling-safe teardown/cleanup. It exercises backends only; test your frontend separately if using the optional frontend adapter. Adapt the probe operations if your app's schema or auth needs another test strategy.
 
@@ -235,11 +286,12 @@ The integration test deploys the app schema in two temporary worktrees, writes d
 
 - `cli.mjs` and `commands.mjs`: command entry points and dispatch.
 - `context.mjs`: repository and layout paths.
-- `freshness.mjs`: fetched-main checks and safe fast-forward behavior.
+- `freshness.mjs`: remote base-branch resolution, refresh checks and safe fast-forward behavior.
 - `registry.mjs`: locking, reservations and port probes.
 - `dependencies.mjs`: package-manager detection, frozen installs and workspace-local CLI resolution.
 - `config.mjs` and `files.mjs`: state validation, environment selection and safe file operations.
 - `processes.mjs`: owned process supervision and graceful shutdown.
 - `lifecycle.mjs`: setup, teardown, cleanup and prune.
+- `installer.mjs`: verified source copying used by the Node installation entry point.
 
 `manifest.json` records checksums for the exported implementation, configuration and tests. Update the hashes when adapting files before reusing the installer.

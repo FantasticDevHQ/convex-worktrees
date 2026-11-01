@@ -6,6 +6,6 @@
     "test": "node --test scripts/worktree/*.test.mjs",
     "test:worktree": "node --test scripts/worktree/*.test.mjs",
     "test:integration": "node --test scripts/worktree/worktree.integration.mjs",
-    "check:all": "node --test scripts/worktree/*.test.mjs && python3 scripts/verify-install.py"
+    "check:all": "node scripts/check.mjs"
   }
 }

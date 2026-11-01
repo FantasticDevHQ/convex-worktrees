@@ -2,7 +2,7 @@
   "files": {
     "worktree-freshness.test.mjs": {
       "path": "scripts/worktree/worktree-freshness.test.mjs",
-      "sha256": "524027c6f913e804314fb01442700380d133f5cfc0f6bc1be9b590d290e43e1f",
+      "sha256": "a2578067d1fb833b9a792cd3cf902d129e29e79a3f4e837ea455205c19618721",
       "adaptation": "Relocated under scripts/worktree; module/CLI references updated."
     },
     "worktree.config.json": {
@@ -20,12 +20,12 @@
     },
     "worktree.test.mjs": {
       "path": "scripts/worktree/worktree.test.mjs",
-      "sha256": "2ba36ff30a91795d6181e4e35bbf2886c6b190d119223b21f7029985efdfae30",
+      "sha256": "bf0bf4d7448f66dd32cab55d4172747633b2412cd10cd4ae123ac36fa3520ad1",
       "adaptation": "Relocated under scripts/worktree; module/CLI references updated."
     },
     "cli.mjs": {
       "path": "scripts/worktree/cli.mjs",
-      "sha256": "ced82fcdd9f1f523b2441af3f89e3476bd78feec27aee27e6fb73bbbc990f0d4"
+      "sha256": "e007757ffc54c84ea0fa002185e05804238776394c2efe7e0340dc176a7291d6"
     },
     "commands.mjs": {
       "path": "scripts/worktree/commands.mjs",
@@ -45,7 +45,7 @@
     },
     "freshness.mjs": {
       "path": "scripts/worktree/freshness.mjs",
-      "sha256": "7efea325c246e8174d31abafaa8d1bd678589571e783299c5efbd02604574e87"
+      "sha256": "e45c37e447bed6ae9cea42f6eb2401a7332192970c322ecc3a1ab222f4a45f04"
     },
     "lifecycle.mjs": {
       "path": "scripts/worktree/lifecycle.mjs",
@@ -66,6 +66,14 @@
     "dependencies.test.mjs": {
       "path": "scripts/worktree/dependencies.test.mjs",
       "sha256": "c32798cfcde19007401ae380e8cd12c902f648bdda1af2a8ce3cec9f4c715e76"
+    },
+    "installer.mjs": {
+      "path": "scripts/worktree/installer.mjs",
+      "sha256": "0d2365aae6f788ef92554a3e08fc7e69f1810f0b821713c7538137a0fc4f7290"
+    },
+    "installer.test.mjs": {
+      "path": "scripts/worktree/installer.test.mjs",
+      "sha256": "e63cf17edc6df9cb9bf17fe58a13516f99af394aea3e78e403b119ad7fa57a5f"
     }
   },
   "formatVersion": 1

@@ -13,8 +13,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import net from "node:net";
+import { fileURLToPath } from "node:url";
 
-const script = new URL("./cli.mjs", import.meta.url).pathname;
+const script = fileURLToPath(new URL("./cli.mjs", import.meta.url));
 async function fixture(t) {
   const dir = await realpath(await mkdtemp(join(tmpdir(), "worktree-test-")));
   t.after(() => rm(dir, { recursive: true, force: true }));
