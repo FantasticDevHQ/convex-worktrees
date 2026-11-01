@@ -1,4 +1,5 @@
 .worktree/
+.worktrees/
 .env.local
 .convex/
 node_modules/

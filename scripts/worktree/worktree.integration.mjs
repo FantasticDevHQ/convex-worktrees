@@ -7,6 +7,7 @@ import path from "node:path";
 import { spawn, execFileSync } from "node:child_process";
 import net from "node:net";
 import { existsSync } from "node:fs";
+import { installDependencies } from "./dependencies.mjs";
 
 const source = await realpath(process.cwd());
 const layout = JSON.parse(await readFile(path.join(source, "scripts/worktree.config.json"), "utf8"));
@@ -80,10 +81,7 @@ test(
         cwd: source,
         stdio: "ignore",
       });
-      execFileSync("bun", ["install", "--frozen-lockfile"], {
-        cwd: root,
-        stdio: "ignore",
-      });
+      installDependencies(root);
     }
     const setups = await Promise.allSettled(
       roots.map((root) => ok(root, "setup")),

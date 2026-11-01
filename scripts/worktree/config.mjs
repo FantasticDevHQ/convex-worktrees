@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { root, backend, dir, stateFile, configFile, read } from "./context.mjs";
 import { safe, json } from "./files.mjs";
+import { packageBin } from "./dependencies.mjs";
 
 export async function state() {
   await safe(stateFile);
@@ -58,12 +59,7 @@ export function childEnv(s, bootstrap = false) {
 }
 
 export function cli() {
-  const bin = path.join(root, "node_modules/convex/bin/main.js");
-  if (!existsSync(bin))
-    throw new Error(
-      "Install dependencies first: bun install --frozen-lockfile",
-    );
-  return bin;
+  return packageBin("convex", "convex", [backend, root]);
 }
 
 export function convexArgs(s, extra = []) {

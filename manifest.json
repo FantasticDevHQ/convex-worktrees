@@ -11,7 +11,7 @@
     },
     "worktree.integration.mjs": {
       "path": "scripts/worktree/worktree.integration.mjs",
-      "sha256": "842ceeb2aa385e70a31ad4551f1c9726dd6f9e394b63ea480d0237fd46b502f8",
+      "sha256": "c261b446feb6717602e0fd67e8bdae9e3cab1504afa8351a1b33a08aba38885b",
       "adaptation": "Generic optional isolation test using the example probe functions."
     },
     "worktree.mjs": {
@@ -20,20 +20,20 @@
     },
     "worktree.test.mjs": {
       "path": "scripts/worktree/worktree.test.mjs",
-      "sha256": "23da1852ebbaacd0624a0a1fd570ea2f2dc0cfbb5fd0b09806d5210b5e0f4855",
+      "sha256": "2ba36ff30a91795d6181e4e35bbf2886c6b190d119223b21f7029985efdfae30",
       "adaptation": "Relocated under scripts/worktree; module/CLI references updated."
     },
     "cli.mjs": {
       "path": "scripts/worktree/cli.mjs",
-      "sha256": "9f77b15e2e5acafc2861501f5c08dcb93f5e3d71463c40c77fffd274018b4956"
+      "sha256": "ced82fcdd9f1f523b2441af3f89e3476bd78feec27aee27e6fb73bbbc990f0d4"
     },
     "commands.mjs": {
       "path": "scripts/worktree/commands.mjs",
-      "sha256": "d36c39a94524fb16af483d99d764115a9d6da66e1cd8649b4ef56b794f00cdf6"
+      "sha256": "f7377881485b249ceeaad3d33c9bde3958c8a7ff07c5fa07516ce595e961a927"
     },
     "config.mjs": {
       "path": "scripts/worktree/config.mjs",
-      "sha256": "cb9bae575c5bfb84896dff456cb2ffd48c83517430c7f2a3ca0fb738e708c9f8"
+      "sha256": "4e0e37f8b5059f5a4d9ffabd7474aea1cada793abfd11920210cb617d9c2cd61"
     },
     "context.mjs": {
       "path": "scripts/worktree/context.mjs",
@@ -53,11 +53,19 @@
     },
     "processes.mjs": {
       "path": "scripts/worktree/processes.mjs",
-      "sha256": "5abfa0f282f0527050e06e8739ec320f992e6875de1008bbf80156993f0af7fe"
+      "sha256": "e55441a15338a817e54fd8457ca41234b1b4775e904c735d63535bbcbada6c71"
     },
     "registry.mjs": {
       "path": "scripts/worktree/registry.mjs",
       "sha256": "cec767fc73c3a463f469c0ab8658139839054099dc0495387ce61f2a3025d26a"
+    },
+    "dependencies.mjs": {
+      "path": "scripts/worktree/dependencies.mjs",
+      "sha256": "e08851e46607f9422231f88cb12ea8bebbe272b42143b24ce4a2f2ea495639b3"
+    },
+    "dependencies.test.mjs": {
+      "path": "scripts/worktree/dependencies.test.mjs",
+      "sha256": "c32798cfcde19007401ae380e8cd12c902f648bdda1af2a8ce3cec9f4c715e76"
     }
   },
   "formatVersion": 1

@@ -5,6 +5,7 @@ import { root, script } from "./context.mjs";
 import { refreshCheckout } from "./freshness.mjs";
 import { main } from "./commands.mjs";
 import { projectLock } from "./registry.mjs";
+import { installDependencies } from "./dependencies.mjs";
 try {
   const targetIndex = process.argv.indexOf("--path");
   if (process.argv[2] === "setup" && targetIndex >= 0) {
@@ -30,11 +31,7 @@ try {
         { stdio: "inherit" },
       );
       const prepare = process.argv.includes("--prepare-only");
-      if (!prepare)
-        execFileSync("bun", ["install", "--frozen-lockfile"], {
-          cwd: target,
-          stdio: "inherit",
-        });
+      if (!prepare) installDependencies(target);
       execFileSync(
         process.execPath,
         [script, "setup", ...(prepare ? ["--prepare-only"] : [])],
