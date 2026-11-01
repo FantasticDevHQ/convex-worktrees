@@ -41,3 +41,16 @@ jobs:
         run: |
           node scripts/worktree/cli.mjs teardown
           node scripts/worktree/cli.mjs cleanup --yes
+  quality:
+    name: Repository quality gates
+    needs: test
+    if: always()
+    runs-on: ubicloud-standard-2-ubuntu-2404
+    timeout-minutes: 5
+    steps:
+      - name: Require successful toolkit tests
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          echo "Toolkit test result: $TEST_RESULT"
+          test "$TEST_RESULT" = success
