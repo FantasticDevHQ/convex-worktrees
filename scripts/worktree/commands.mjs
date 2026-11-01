@@ -1,7 +1,5 @@
 import { existsSync } from "node:fs";
 
-import path from "node:path";
-
 import { spawn } from "node:child_process";
 
 import { root, frontend, stateFile, sleep } from "./context.mjs";
@@ -9,6 +7,7 @@ import { projectLock } from "./registry.mjs";
 import { state, childEnv } from "./config.mjs";
 import { ownedRunning, serve, start, stopOnly } from "./processes.mjs";
 import { setup, teardown, prune } from "./lifecycle.mjs";
+import { packageBin } from "./dependencies.mjs";
 
 export async function main() {
   const command = process.argv[2];
@@ -50,7 +49,7 @@ export async function main() {
     const child = spawn(
       process.execPath,
       [
-        path.join(root, "node_modules/next/dist/bin/next"),
+        packageBin("next", "next", [frontend, root]),
         "dev",
         "--port",
         String(s.ports.web),

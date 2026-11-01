@@ -17,6 +17,7 @@ import {
 import { safe, json } from "./files.mjs";
 import { alive, locked, available } from "./registry.mjs";
 import { state, checkConfig, childEnv, convexArgs } from "./config.mjs";
+import { packageBin } from "./dependencies.mjs";
 
 export async function run(
   args,
@@ -129,6 +130,8 @@ export async function reserve(s) {
 
 export async function serve(s, withFrontend = false) {
   await checkConfig(s, true);
+  const backendArgs = convexArgs(s);
+  const frontendBin = withFrontend ? packageBin("next", "next", [frontend, root]) : null;
   await json(path.join(dir, "runtime.json"), { pid: process.pid, id: s.id });
   const children = [];
   let stopping = false;
@@ -149,7 +152,7 @@ export async function serve(s, withFrontend = false) {
   }
   process.on("SIGTERM", () => void stop());
   process.on("SIGINT", () => void stop());
-  const backendChild = spawn(process.execPath, convexArgs(s), {
+  const backendChild = spawn(process.execPath, backendArgs, {
     cwd: backend,
     env: childEnv(s),
     stdio: ["ignore", "inherit", "inherit"],
@@ -166,7 +169,7 @@ export async function serve(s, withFrontend = false) {
     const web = spawn(
       process.execPath,
       [
-        path.join(root, "node_modules/next/dist/bin/next"),
+        frontendBin,
         "dev",
         "--port",
         String(s.ports.web),
@@ -180,19 +183,21 @@ export async function serve(s, withFrontend = false) {
   }
 }
 
-export async function start(frontend = false) {
+export async function start(withFrontend = false) {
   const s = await state();
   if (await ownedRunning(s)) {
     console.log("Already running.");
     return;
   }
   await checkConfig(s, true);
+  convexArgs(s);
+  if (withFrontend) packageBin("next", "next", [frontend, root]);
   await reserve(s);
   await safe(path.join(dir, "backend.log"));
   const log = openSync(path.join(dir, "backend.log"), "w", 0o600);
   const child = spawn(
     process.execPath,
-    [script, "_serve", `--owner=${s.id}`, ...(frontend ? ["--frontend"] : [])],
+    [script, "_serve", `--owner=${s.id}`, ...(withFrontend ? ["--frontend"] : [])],
     {
       cwd: root,
       env: process.env,
@@ -208,7 +213,7 @@ export async function start(frontend = false) {
     const output = await fs.readFile(path.join(dir, "backend.log"), "utf8");
     if (output.includes("Convex functions ready")) {
       console.log(
-        `Backend ready at http://127.0.0.1:${s.ports.cloud}${frontend ? `; frontend http://localhost:${s.ports.web}` : ""}`,
+        `Backend ready at http://127.0.0.1:${s.ports.cloud}${withFrontend ? `; frontend http://localhost:${s.ports.web}` : ""}`,
       );
       return;
     }
