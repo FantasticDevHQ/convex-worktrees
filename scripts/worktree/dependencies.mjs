@@ -37,7 +37,17 @@ export function installCommand(root) {
     : [manager, "install", "--frozen-lockfile"];
 }
 
-export function installDependencies(root) {
+export function installDependencies(root, { allowEmpty = false } = {}) {
+  if (allowEmpty) {
+    const file = path.join(root, "package.json");
+    const manifest = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
+    const hasDependencies = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]
+      .some((field) => Object.keys(manifest[field] || {}).length > 0);
+    if (!hasDependencies && !manifest.workspaces && !existsSync(path.join(root, "pnpm-workspace.yaml"))) {
+      console.log("No application dependencies; dependency installation skipped.");
+      return;
+    }
+  }
   const [command, ...args] = installCommand(root);
   try {
     execFileSync(command, args, { cwd: root, stdio: "inherit" });

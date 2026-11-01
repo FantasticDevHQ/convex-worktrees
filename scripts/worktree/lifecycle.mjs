@@ -13,6 +13,7 @@ import {
   stateFile,
   configFile,
   read,
+  layout,
 } from "./context.mjs";
 import { safe, json, upsert } from "./files.mjs";
 import { locked, projectLock, available } from "./registry.mjs";
@@ -28,6 +29,15 @@ import { refreshCheckout } from "./freshness.mjs";
 
 export async function setup(prepareOnly) {
   await refreshCheckout(root);
+  if (layout.convex === false) {
+    await safe(dir);
+    await safe(stateFile);
+    await fs.mkdir(dir, { recursive: true, mode: 0o700 });
+    if (existsSync(stateFile)) await state();
+    else await json(stateFile, { version: 1, root, id: randomUUID(), mode: "none" });
+    console.log("Worktree ready; no backend or frontend services configured.");
+    return;
+  }
   if (!existsSync(path.join(backend, "convex.json")))
     throw new Error("Run from the Convex project directory.");
   await safe(dir);
@@ -187,8 +197,22 @@ export async function teardown(cleanup = false) {
   const s = await state();
   if (cleanup && !process.argv.includes("--yes"))
     throw new Error(
-      "Cleanup deletes this worktree database. Pass --yes explicitly.",
+      s.mode === "none"
+        ? "Cleanup deletes managed worktree state. Pass --yes explicitly."
+        : "Cleanup deletes this worktree database. Pass --yes explicitly.",
     );
+  if (s.mode === "none") {
+    if (cleanup) {
+      await safe(dir);
+      await fs.rm(stateFile);
+      // Only remove our own identity file. A user may keep unrelated files in
+      // .worktree; an empty directory can be removed without recursive deletion.
+      try { await fs.rmdir(dir); }
+      catch (error) { if (error.code !== "ENOTEMPTY" && error.code !== "EEXIST") throw error; }
+    }
+    console.log(cleanup ? "Managed worktree state cleaned." : "No managed services; worktree state preserved.");
+    return;
+  }
   if (cleanup) await checkConfig(s);
   await stopOnly(s);
   await locked(async (leases) => {

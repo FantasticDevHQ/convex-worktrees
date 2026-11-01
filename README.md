@@ -142,6 +142,7 @@ A single-package app can set `backend` and `frontend` to `.`. Configure these fi
 | Field | Purpose |
 | --- | --- |
 | `backend`, `frontend` | Paths relative to the repository root. |
+| `convex` | Omit or use `true` for Convex applications. Set `false` only for backend-free repositories such as the toolkit itself. |
 | `baseBranch` | Optional branch name on `origin`, such as `master`, `masters` or `develop`. Without it, setup uses the remote's live advertised default branch. |
 | `env` | Synthetic local backend environment defaults required by your schema. |
 | `secretEnv` | Names of values generated once per checkout and retained across repeated setup. |
@@ -281,6 +282,24 @@ The optional real-backend integration test runs inside a consuming application, 
 4. Commit the test setup and required lockfile to the app's selected remote base branch, then run `node --test scripts/worktree/worktree.integration.mjs` from a clean app checkout.
 
 The integration test deploys the app schema in two temporary worktrees, writes different probe records, verifies database isolation and restart persistence, tests busy-port refusal and checks sibling-safe teardown/cleanup. It exercises backends only; test your frontend separately if using the optional frontend adapter. Adapt the probe operations if your app's schema or auth needs another test strategy.
+
+## Working on this toolkit
+
+This repository follows the same [PR standard](docs/pull-request-standard.md) and worktree lifecycle as the applications adopting it. Its own adapter sets `convex: false` and `frontend: false`, because the toolkit has no application backend or development server.
+
+```sh
+node scripts/worktree/cli.mjs setup
+node scripts/check.mjs
+node scripts/worktree/cli.mjs teardown
+# Remove only this checkout's owned identity when finished:
+node scripts/worktree/cli.mjs cleanup --yes
+```
+
+In this backend-free mode, setup still fetches the selected base and records checkout ownership. Start, stop and teardown validate that identity but launch no services or reserve ports. Explicit cleanup removes only the owned identity file and preserves unrelated files. Creating a dependency-free toolkit worktree does not require a package-manager install or an artificial lockfile.
+
+The installer exports `scripts/worktree.config.example.json` as the adopting application's `scripts/worktree.config.json`. Those app defaults enable Convex; the toolkit's own backend-free adapter is never copied into an application.
+
+Run `node scripts/check.mjs` before submitting a PR. It includes lifecycle, installer and PR-standard tests, then verifies the installed export and its tests in a path containing spaces. CI runs these checks on UbiCloud. The PR metadata workflow executes trusted base-branch code; activation and required-status protection are separate concerns described in the PR standard.
 
 ## Modules
 

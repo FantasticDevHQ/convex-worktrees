@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 
 import { spawn } from "node:child_process";
 
-import { root, frontend, stateFile, sleep } from "./context.mjs";
+import { root, frontend, stateFile, sleep, layout } from "./context.mjs";
 import { projectLock } from "./registry.mjs";
 import { state, childEnv } from "./config.mjs";
 import { ownedRunning, serve, start, stopOnly } from "./processes.mjs";
@@ -11,6 +11,13 @@ import { packageBin } from "./dependencies.mjs";
 
 export async function main() {
   const command = process.argv[2];
+  if (layout.convex === false && ["start", "stop", "dev", "backend", "frontend", "_serve"].includes(command)) {
+    await state();
+    if (!["start", "stop"].includes(command) || process.argv.includes("--frontend"))
+      throw new Error("No development services are configured with convex:false. Run development commands directly in this checkout.");
+    console.log("No backend or frontend services configured; nothing to start or stop.");
+    return;
+  }
   if (command === "setup") await setup(process.argv.includes("--prepare-only"));
   else if (command === "start")
     await projectLock(

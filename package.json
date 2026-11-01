@@ -3,9 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test scripts/worktree/*.test.mjs",
+    "test": "node scripts/check.mjs",
     "test:worktree": "node --test scripts/worktree/*.test.mjs",
     "test:integration": "node --test scripts/worktree/worktree.integration.mjs",
-    "check:all": "node scripts/check.mjs"
+    "check:all": "node scripts/check.mjs",
+    "test:pr-standard": "node --test scripts/pr-standard.test.mjs scripts/enforce-pr-standard.test.mjs",
+    "worktree:setup": "node scripts/worktree/cli.mjs setup",
+    "worktree:start": "node scripts/worktree/cli.mjs start",
+    "worktree:stop": "node scripts/worktree/cli.mjs stop",
+    "worktree:teardown": "node scripts/worktree/cli.mjs teardown",
+    "worktree:cleanup": "node scripts/worktree/cli.mjs cleanup",
+    "worktree:prune": "node scripts/worktree/cli.mjs prune"
   }
 }
