@@ -1,6 +1,7 @@
 {
   "name": "@fantasticdev/convex-worktrees",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "test": "node scripts/check.mjs",
