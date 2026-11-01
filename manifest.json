@@ -7,7 +7,8 @@
     },
     "worktree.config.json": {
       "path": "scripts/worktree.config.json",
-      "sha256": "dc03f7d61091eecd3e75ba1c9bcb0b853840782f4cccc0be21d857557b8401bf"
+      "sha256": "dc03f7d61091eecd3e75ba1c9bcb0b853840782f4cccc0be21d857557b8401bf",
+      "source": "scripts/worktree.config.example.json"
     },
     "worktree.integration.mjs": {
       "path": "scripts/worktree/worktree.integration.mjs",
@@ -25,15 +26,15 @@
     },
     "cli.mjs": {
       "path": "scripts/worktree/cli.mjs",
-      "sha256": "e007757ffc54c84ea0fa002185e05804238776394c2efe7e0340dc176a7291d6"
+      "sha256": "9cad8ad1f78fded7f89516cb251c2149b92249580c120fe0c03c6627ca96b237"
     },
     "commands.mjs": {
       "path": "scripts/worktree/commands.mjs",
-      "sha256": "f7377881485b249ceeaad3d33c9bde3958c8a7ff07c5fa07516ce595e961a927"
+      "sha256": "d0e27322e9f38a1d79c6a8a38dfa4c4810f686f889fa0fa2f74447bbcbd1531e"
     },
     "config.mjs": {
       "path": "scripts/worktree/config.mjs",
-      "sha256": "4e0e37f8b5059f5a4d9ffabd7474aea1cada793abfd11920210cb617d9c2cd61"
+      "sha256": "717e7895569c9d0ea740de4d32c379c5ea39726223354f125d09e4180a00148c"
     },
     "context.mjs": {
       "path": "scripts/worktree/context.mjs",
@@ -49,7 +50,7 @@
     },
     "lifecycle.mjs": {
       "path": "scripts/worktree/lifecycle.mjs",
-      "sha256": "bf8bc535df6e9f73db4cd02c6af371ee97da1b7f2b3236b47e9e92e3f34c8ba1"
+      "sha256": "01e58793a6e786ea79c2b4562349ee36377a0df3e561f289fa7d6d5ee7627d20"
     },
     "processes.mjs": {
       "path": "scripts/worktree/processes.mjs",
@@ -61,19 +62,23 @@
     },
     "dependencies.mjs": {
       "path": "scripts/worktree/dependencies.mjs",
-      "sha256": "e08851e46607f9422231f88cb12ea8bebbe272b42143b24ce4a2f2ea495639b3"
+      "sha256": "0ec8ccddfde1e03682765048f2fab71a3c3c374390f7413f812db209da906c98"
     },
     "dependencies.test.mjs": {
       "path": "scripts/worktree/dependencies.test.mjs",
-      "sha256": "c32798cfcde19007401ae380e8cd12c902f648bdda1af2a8ce3cec9f4c715e76"
+      "sha256": "5612430798496d343275102c28d5af326bfdff8ea2eee1264d8b94995baf4101"
     },
     "installer.mjs": {
       "path": "scripts/worktree/installer.mjs",
-      "sha256": "0d2365aae6f788ef92554a3e08fc7e69f1810f0b821713c7538137a0fc4f7290"
+      "sha256": "ee1adc62d26369d30246d6e3b78caa2ca418aa727990ef87876b5b0f0c73d1c0"
     },
     "installer.test.mjs": {
       "path": "scripts/worktree/installer.test.mjs",
-      "sha256": "e63cf17edc6df9cb9bf17fe58a13516f99af394aea3e78e403b119ad7fa57a5f"
+      "sha256": "91c443f53689cadea491677caf732e7b5e784372203b75cf318a5d3c084edabc"
+    },
+    "backend-free.test.mjs": {
+      "path": "scripts/worktree/backend-free.test.mjs",
+      "sha256": "6448fdc18f5a4ebc48bb5f9f124acd807bc7be4898b80681aed029243f40499c"
     }
   },
   "formatVersion": 1

@@ -1,0 +1,8 @@
+{
+  "backend": "packages/backend",
+  "frontend": "apps/web",
+  "env": {},
+  "secretEnv": [],
+  "siteUrlEnv": [],
+  "bootstrapMissingEnv": []
+}

@@ -33,8 +33,13 @@ export function installToolkit(sourceDirectory, targetDirectory) {
         relative.split("/")[0] !== "scripts" ||
         relative.split("/").some((part) => !part || part === "." || part === ".."))
       throw new Error(`Invalid destination path: ${relative}`);
-    rejectSymlinks(source, relative);
-    const data = fs.readFileSync(path.join(source, relative));
+    const sourcePath = item.source ?? relative;
+    if (typeof sourcePath !== "string" || sourcePath.includes("\\") ||
+        sourcePath.split("/")[0] !== "scripts" ||
+        sourcePath.split("/").some((part) => !part || part === "." || part === ".."))
+      throw new Error(`Invalid source path: ${sourcePath}`);
+    rejectSymlinks(source, sourcePath);
+    const data = fs.readFileSync(path.join(source, sourcePath));
     const checksum = createHash("sha256").update(data).digest("hex");
     if (checksum !== item.sha256) throw new Error(`Checksum mismatch: ${name}`);
     rejectSymlinks(target, relative);

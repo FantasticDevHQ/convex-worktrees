@@ -125,3 +125,20 @@ test("an explicit checkout dependency symlink may use an external pnpm store", a
   await symlink(path.dirname(path.dirname(bin)), path.join(checkout, "node_modules/convex"), "dir");
   assert.equal(api.packageBin("convex", "convex", [checkout]), bin);
 });
+
+test("backend-free install skips only an explicitly allowed dependency-free project", async (t) => {
+  const root = await fixture(t);
+  assert.doesNotThrow(() => api.installDependencies(root, { allowEmpty: true }));
+  assert.throws(() => api.installDependencies(root), /lockfile/);
+});
+
+test("backend-free install still requires a lockfile for dependencies and workspaces", async (t) => {
+  for (const field of ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]) {
+    const root = await fixture(t, { [field]: { dependency: "1.0.0" } });
+    assert.throws(() => api.installDependencies(root, { allowEmpty: true }), /lockfile/);
+  }
+  const npmWorkspace = await fixture(t, { workspaces: ["packages/*"] });
+  assert.throws(() => api.installDependencies(npmWorkspace, { allowEmpty: true }), /lockfile/);
+  const pnpmWorkspace = await fixture(t, {}, ["pnpm-workspace.yaml"]);
+  assert.throws(() => api.installDependencies(pnpmWorkspace, { allowEmpty: true }), /lockfile/);
+});

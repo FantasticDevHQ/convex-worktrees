@@ -82,3 +82,23 @@ test("dangling destination symlinks are refused", async (t) => {
   await symlink(path.join(f.base, "missing"), path.join(f.target, "scripts/worktree/entry.mjs"));
   assert.throws(() => api.installToolkit(f.source, f.target), /symlink|overwrite/i);
 });
+
+test("a mapped source installs app defaults instead of the toolkit's self configuration", async (t) => {
+  const f = await fixture(t);
+  const entry = f.manifest.files["config.json"];
+  entry.source = "scripts/worktree.config.example.json";
+  entry.sha256 = hash("app defaults");
+  await writeFile(path.join(f.source, "scripts/worktree.config.json"), "self mode");
+  await writeFile(path.join(f.source, entry.source), "app defaults");
+  await f.save();
+  assert.equal(api.installToolkit(f.source, f.target), 2);
+  assert.equal(await readFile(path.join(f.target, entry.path), "utf8"), "app defaults");
+});
+
+test("mapped source paths cannot escape the toolkit", async (t) => {
+  const f = await fixture(t);
+  f.manifest.files["config.json"].source = "../private-file";
+  await f.save();
+  assert.throws(() => api.installToolkit(f.source, f.target), /invalid.*source|invalid.*path/i);
+  assert.deepEqual(await readdir(f.target), []);
+});

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { root, script } from "./context.mjs";
+import { root, script, read } from "./context.mjs";
 import { refreshCheckout } from "./freshness.mjs";
 import { main } from "./commands.mjs";
 import { projectLock } from "./registry.mjs";
@@ -32,7 +32,10 @@ try {
         { stdio: "inherit" },
       );
       const prepare = process.argv.includes("--prepare-only");
-      if (!prepare) installDependencies(target);
+      if (!prepare) {
+        const targetLayout = await read(path.join(target, "scripts/worktree.config.json"), {});
+        installDependencies(target, { allowEmpty: targetLayout.convex === false });
+      }
       execFileSync(
         process.execPath,
         [script, "setup", ...(prepare ? ["--prepare-only"] : [])],
