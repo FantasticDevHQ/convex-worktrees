@@ -1,0 +1,11 @@
+{
+  "name": "@fantasticdev/convex-worktrees",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test scripts/worktree/*.test.mjs",
+    "test:worktree": "node --test scripts/worktree/*.test.mjs",
+    "test:integration": "node --test scripts/worktree/worktree.integration.mjs",
+    "check:all": "npm test && python3 scripts/verify-install.py"
+  }
+}
