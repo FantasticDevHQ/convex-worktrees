@@ -4,40 +4,89 @@ Run multiple Git worktrees with independent local Convex backends, databases, po
 
 The scripts run noninteractively in editors, coding agents and CI. Local development needs no Convex account, cloud development deployment or copied cloud credentials.
 
+## Quick start
+
+### Have my agent set this up
+
+Copy this prompt into your coding agent while it is working in your application:
+
+```text
+Set up local Convex worktrees in this application using:
+https://github.com/FantasticDevHQ/convex-worktrees
+
+Read this repository's agent instructions and the toolkit README first. Inspect
+our existing worktree tooling, Convex/frontend layout, packageManager field and
+lockfiles. Use our existing Bun, pnpm or npm setup and preserve its lockfile and
+dependency-build policy. In a Convex Turborepo, keep the backend in
+packages/backend.
+
+Install or carefully merge the toolkit under scripts/worktree/, including its
+tests. Configure the layout and local environment defaults, add package scripts
+and ignore rules, and adapt the optional frontend command if we do not use
+Next.js. Preserve unrelated files, existing settings and user changes. Use
+independent local anonymous backends with stable ports; do not provision cloud
+deployments, copy production credentials or kill processes by port/name.
+
+Follow this repository's change/review workflow and keep the checkout clean
+before running setup. Run the toolkit tests and verify local setup/start plus
+sibling-safe teardown. Where practical, verify two concurrent backends and
+restart persistence. Do not claim checks that were not run. The adoption changes
+must land on origin/main before testing new worktrees created from main.
+
+Finish by listing the changed files, exact setup/start/stop/teardown commands for
+our package manager, checks performed and any remaining limitations.
+```
+
+### Manual setup
+
+You need Node.js 22+, Python 3, Git, your application's package manager and an existing Convex application. Use a clean adoption branch and follow your application's change workflow.
+
+1. From your application root, copy the toolkit into it:
+
+   ```sh
+   git clone https://github.com/FantasticDevHQ/convex-worktrees.git ../convex-worktrees-kit
+   python3 ../convex-worktrees-kit/install.py .
+   ```
+
+   Choose another clone path if that directory already exists. The installer verifies checksums and refuses existing destination files or symlinked paths. Merge existing worktree tooling manually rather than overwriting it.
+
+2. Set `backend` and `frontend` in `scripts/worktree.config.json`. The defaults are `packages/backend` and `apps/web`; a single-package app can use `.`. Add the [package scripts](#package-scripts), ignore generated state and configure any required local environment defaults. See [configuration](#configure-the-layout) for the full fields.
+
+3. Install your application's dependencies with its existing manager:
+
+   | Manager | Install dependencies |
+   | --- | --- |
+   | Bun | `bun install --frozen-lockfile` |
+   | pnpm | `pnpm install --frozen-lockfile` |
+   | npm | `npm ci` |
+
+   Keep the matching lockfile committed. [Package-manager selection](#package-manager-selection) explains detection and workspace settings.
+
+4. Commit the adoption changes so the checkout is clean, then provision and start the local backend:
+
+   ```sh
+   node scripts/worktree/cli.mjs setup
+   node scripts/worktree/cli.mjs start
+   # Optional Next.js frontend alongside the backend:
+   # node scripts/worktree/cli.mjs start --frontend
+   ```
+
+   Setup fetches `origin/main`; it stops for fetch failures, dirty files or divergence instead of discarding changes. Merge and push the adoption changes onto `origin/main` before [creating a new worktree](#daily-use), since new checkouts start from that remote branch.
+
+To stop and release this checkout's ports while keeping its database:
+
+```sh
+node scripts/worktree/cli.mjs teardown
+```
+
 ## Requirements
 
-- Node.js 22+, Git and your application's package manager: Bun, pnpm or npm. The selected manager must be available on PATH.
+- Node.js 22+, Python 3 for the installer, Git and your application's package manager: Bun, pnpm or npm. The selected manager must be available on PATH.
 - An existing Convex application. Install Convex in the backend workspace or repository root. The toolkit resolves its installed CLI, including pnpm's isolated workspace layout. The optional Next.js CLI resolves from the frontend workspace, then the root.
 - macOS or modern Linux with a compatible glibc/C++ runtime for the Convex binary. Native Windows process checks are not supported; use WSL.
 - Network access for fetching main, installing dependencies and the initial Convex binary/dashboard download.
 
 The optional frontend commands currently target Next.js. Adapt `commands.mjs` and `processes.mjs` for another frontend. Backend-only operation does not start the frontend.
-
-## Install in your application
-
-```sh
-git clone https://github.com/FantasticDevHQ/convex-worktrees.git
-cd convex-worktrees
-python3 install.py /path/to/your/app
-```
-
-The installer verifies the source checksums and copies the toolkit into the application. It refuses to overwrite existing files or follow symlinked destination paths. If you already have worktree tooling, review and merge it manually.
-
-Implementation and all worktree tests live under `scripts/worktree/`. The installer also copies `scripts/worktree.config.json` and the compatibility wrapper `scripts/worktree.mjs`.
-
-## Package-manager selection
-
-New-worktree creation and the optional backend integration harness use the same install selection:
-
-1. Use the root `package.json` `packageManager` field when present. Provision the desired package-manager version yourself; the toolkit invokes the selected executable on PATH.
-2. Otherwise detect `bun.lock` or `bun.lockb`, `pnpm-lock.yaml`, or `package-lock.json` or `npm-shrinkwrap.json`.
-3. Without metadata or a recognized lockfile, the manager defaults to npm, but automatic installation still requires a committed npm lockfile.
-
-Multiple lockfile families without explicit metadata are ambiguous and fail. Unsupported `packageManager` values fail. A stale lockfile from another manager does not override explicit metadata, but the selected manager must have its own lockfile. Frozen installs never generate a replacement lockfile. A failed install stops setup; it does not silently try another manager.
-
-pnpm workspaces must include a `pnpm-workspace.yaml` covering the backend/frontend packages. Dependency binaries resolve from their owning workspace first, so root-level hoisting is not required. If pnpm requires dependency-build approval, review the required packages in your application and commit its build-policy settings before noninteractive setup. The toolkit preserves those settings and reports install failures. See [pnpm build approvals](https://pnpm.io/cli/approve-builds). The toolkit never uses `npx`, `pnpm dlx` or `bunx` to download a missing CLI.
-
-Install command references: [Bun](https://bun.sh/docs/pm/cli/install), [pnpm](https://pnpm.io/cli/install), [npm](https://docs.npmjs.com/cli/commands/npm-ci).
 
 ## Configure the layout
 
@@ -62,6 +111,8 @@ A single-package app can set `backend` and `frontend` to `.`. Configure these fi
 
 The environment defaults start empty. Add only what your app needs. Never put production credentials in the configuration. External integrations require separate test credentials and verification; successful schema deployment does not test them.
 
+### Package scripts
+
 Merge these scripts into your application's root `package.json`:
 
 ```json
@@ -80,28 +131,25 @@ Merge these scripts into your application's root `package.json`:
 }
 ```
 
-Ignore `.worktree/`, backend `.convex/` local state and generated `.env.local` files, preserving your existing ignore rules. Commit and push the tooling, config, package/lockfile and ignore changes before creating worktrees: new checkouts start from `origin/main`, so the tooling must already exist there.
+Ignore `.worktree/`, backend `.convex/` local state and generated `.env.local` files, preserving your existing ignore rules. Commit the adoption changes before setup so the application checkout is clean. Merge and push them to `origin/main` before creating new worktrees from main; those checkouts need the tooling and configuration too.
 
-## Setup and start
+## Package-manager selection
 
-From a clean application checkout, install dependencies using the matching command:
+New-worktree creation and the optional backend integration harness use the same install selection:
 
-| Package manager | Reproducible dependency install | Setup through package scripts |
-| --- | --- | --- |
-| Bun | `bun install --frozen-lockfile` | `bun run worktree:setup` |
-| pnpm | `pnpm install --frozen-lockfile` | `pnpm run worktree:setup` |
-| npm | `npm ci` | `npm run worktree:setup` |
+1. Use the root `package.json` `packageManager` field when present. Provision the desired package-manager version yourself; the toolkit invokes the selected executable on PATH.
+2. Otherwise detect `bun.lock` or `bun.lockb`, `pnpm-lock.yaml`, or `package-lock.json` or `npm-shrinkwrap.json`.
+3. Without metadata or a recognized lockfile, the manager defaults to npm, but automatic installation still requires a committed npm lockfile.
 
-Then run the lifecycle directly with Node, regardless of package manager:
+Multiple lockfile families without explicit metadata are ambiguous and fail. Unsupported `packageManager` values fail. A stale lockfile from another manager does not override explicit metadata, but the selected manager must have its own lockfile. Frozen installs never generate a replacement lockfile. A failed install stops setup; it does not silently try another manager.
 
-```sh
-node scripts/worktree/cli.mjs setup
-node scripts/worktree/cli.mjs start
-# Optional Next.js frontend alongside the backend:
-# node scripts/worktree/cli.mjs start --frontend
-```
+pnpm workspaces must include a `pnpm-workspace.yaml` covering the backend/frontend packages. Dependency binaries resolve from their owning workspace first, so root-level hoisting is not required. If pnpm requires dependency-build approval, review the required packages in your application and commit its build-policy settings before noninteractive setup. The toolkit preserves those settings and reports install failures. See [pnpm build approvals](https://pnpm.io/cli/approve-builds). The toolkit never uses `npx`, `pnpm dlx` or `bunx` to download a missing CLI.
 
-To create and provision a new branch and checkout:
+Install command references: [Bun](https://bun.sh/docs/pm/cli/install), [pnpm](https://pnpm.io/cli/install), [npm](https://docs.npmjs.com/cli/commands/npm-ci).
+
+## Daily use
+
+Once the tooling is on `origin/main`, create and provision a new branch and checkout:
 
 ```sh
 node scripts/worktree/cli.mjs setup --path ../app-feature --branch feature/my-change
@@ -109,17 +157,19 @@ cd ../app-feature
 node scripts/worktree/cli.mjs start
 ```
 
-An editor can create the checkout itself, then run installation and ordinary setup there. Setup provisions and pushes the app's actual schema/components, then exits. Start runs the supervisor. Alternatively run the `dev` package script with your manager for a foreground session. Do not start a second backend in an already running checkout.
+New-worktree setup installs dependencies with the detected manager. An editor can also create the checkout itself; install dependencies and run ordinary setup there. Setup provisions and pushes the app's actual schema/components, then exits. Start runs the supervisor. Use the `dev` package script for a foreground session. Do not start a second backend in an already running checkout.
 
-Setup fetches `origin/main` and stops on fetch failure. It fast-forwards stale checkouts and local main when safe, and preserves topic commits already based on fetched main. Dirty tracked files or divergence stop setup rather than resetting, stashing or discarding changes. Rebase or merge deliberately, then retry. If your default branch has another name, adapt `freshness.mjs`.
+After adding the package scripts, use your manager's runner:
 
-## Isolation and stable ports
+| Manager | Setup | Start |
+| --- | --- | --- |
+| Bun | `bun run worktree:setup` | `bun run worktree:start` |
+| pnpm | `pnpm run worktree:setup` | `pnpm run worktree:start` |
+| npm | `npm run worktree:setup` | `npm run worktree:start` |
 
-Each checkout owns its database, `.worktree/home`, `.worktree/cache` and environment selection. Bootstrap uses the noninteractive anonymous flow; later runs use verified project-local anonymous agent mode. Inherited Convex selectors are removed from the backend child's environment.
+For npm, put `--` before lifecycle arguments, for example `npm run worktree:setup -- --path ../app-feature --branch feature/my-change`. Direct Node commands work with all three managers.
 
-The per-user host registry `~/.local/state/convex-worktrees/leases.json` allocates distinct stable frontend, backend and site ports. Every backend start passes both `--local-cloud-port` and `--local-site-port`. Locks coordinate allocation and lifecycle operations. Starts serialize cache/dashboard provisioning while running backends remain concurrent.
-
-With the sample layout, the database is in `packages/backend/.convex/local/default/`. Managed state and generated secrets live in `.worktree/`. Do not copy these between checkouts, commit them or upload their environment/log files. Secret/configuration files use restricted permissions.
+Setup fetches `origin/main` and stops on fetch failure. It fast-forwards stale checkouts and local main when safe, and preserves topic commits already based on fetched main. Dirty files or divergence stop setup rather than resetting, stashing or discarding changes. Rebase or merge deliberately, then retry. If your default branch has another name, adapt `freshness.mjs`.
 
 ## Stop, teardown and cleanup
 
@@ -138,8 +188,6 @@ Run lifecycle commands directly as `node scripts/worktree/cli.mjs <command>`, or
 | pnpm | `pnpm run worktree:cleanup --yes` |
 | npm | `npm run worktree:cleanup -- --yes` |
 
-For npm, put `--` before lifecycle arguments, for example `npm run worktree:setup -- --path ../app-feature --branch feature/my-change`.
-
 Teardown does not remove Git branches or checkout directories. Run it before your editor or Git removes a checkout. Deleting that directory also deletes any database inside it, even though teardown itself preserves data.
 
 After teardown, another checkout can claim the released ports. Restart reclaims them only if free. If reassigned, the command fails clearly. Explicit cleanup and fresh setup allocate new state and ports, but cleanup deletes the old database. Preserve anything needed first.
@@ -147,6 +195,14 @@ After teardown, another checkout can claim the released ports. Restart reclaims 
 Before signalling, the recorded supervisor PID must match the expected script path and ownership token. Shutdown forwards SIGINT to Convex and waits for ports to close. The scripts never kill by port or broad process name. If SIGKILL leaves an orphan, inspect ownership before manually retiring it.
 
 Prune removes a reservation only when managed checkout state is absent and every reserved port is free. Keep the same registry throughout setup/start/teardown; do not assign a different `WORKTREE_REGISTRY_DIR` to each worktree.
+
+## Isolation and stable ports
+
+Each checkout owns its database, `.worktree/home`, `.worktree/cache` and environment selection. Bootstrap uses the noninteractive anonymous flow; later runs use verified project-local anonymous agent mode. Inherited Convex selectors are removed from the backend child's environment.
+
+The per-user host registry `~/.local/state/convex-worktrees/leases.json` allocates distinct stable frontend, backend and site ports. Every backend start passes both `--local-cloud-port` and `--local-site-port`. Locks coordinate allocation and lifecycle operations. Starts serialize cache/dashboard provisioning while running backends remain concurrent.
+
+With the sample layout, the database is in `packages/backend/.convex/local/default/`. Managed state and generated secrets live in `.worktree/`. Do not copy these between checkouts, commit them or upload their environment/log files. Secret/configuration files use restricted permissions.
 
 ## Editors, agents and CI
 
