@@ -1,5 +1,9 @@
 # Convex worktrees
 
+[![Fantastic.Dev](assets/fantastic-dev-badge.svg)](https://fantastic.dev) [![MIT license](https://img.shields.io/badge/license-MIT-94C173?style=flat-square&labelColor=0c0e13)](LICENSE)
+
+[A Fantastic.Dev Project](https://fantastic.dev)
+
 Run multiple Git worktrees with independent local Convex backends, databases, ports and environment files. Includes setup, start, stop, teardown, explicit cleanup and stale-reservation pruning.
 
 The scripts run noninteractively in editors, coding agents and CI. Local development needs no Convex account, cloud development deployment or copied cloud credentials.
@@ -314,3 +318,7 @@ Run `node scripts/check.mjs` before submitting a PR. It includes lifecycle, inst
 - `installer.mjs`: verified source copying used by the Node installation entry point.
 
 `manifest.json` records checksums for the exported implementation, configuration and tests. Update the hashes when adapting files before reusing the installer.
+
+## License
+
+[MIT](LICENSE). The installer includes this license at `scripts/worktree/LICENSE` in consuming applications, preserving the toolkit's notice without changing the application's own license.
