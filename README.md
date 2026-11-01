@@ -321,4 +321,4 @@ Run `node scripts/check.mjs` before submitting a PR. It includes lifecycle, inst
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). The installer includes this license at `scripts/worktree/LICENSE` in consuming applications, preserving the toolkit's notice without changing the application's own license.

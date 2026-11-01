@@ -79,6 +79,10 @@
     "backend-free.test.mjs": {
       "path": "scripts/worktree/backend-free.test.mjs",
       "sha256": "6448fdc18f5a4ebc48bb5f9f124acd807bc7be4898b80681aed029243f40499c"
+    },
+    "LICENSE": {
+      "path": "scripts/worktree/LICENSE",
+      "sha256": "bcb31233265fc469a3d06a09b5effc3c79262ab356dfca3648333af16a60a425"
     }
   },
   "formatVersion": 1
