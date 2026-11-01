@@ -1,8 +1,6 @@
 # Convex worktrees
 
-<p>
-  <a href="https://fantastic.dev"><img src="assets/fantastic-dev-logo.svg" alt="Fantastic.Dev logo" width="48" height="48"></a>
-</p>
+[![Fantastic.Dev](assets/fantastic-dev-badge.svg)](https://fantastic.dev) [![MIT license](https://img.shields.io/badge/license-MIT-94C173?style=flat-square&labelColor=0c0e13)](LICENSE)
 
 [A Fantastic.Dev Project](https://fantastic.dev)
 
@@ -320,3 +318,7 @@ Run `node scripts/check.mjs` before submitting a PR. It includes lifecycle, inst
 - `installer.mjs`: verified source copying used by the Node installation entry point.
 
 `manifest.json` records checksums for the exported implementation, configuration and tests. Update the hashes when adapting files before reusing the installer.
+
+## License
+
+[MIT](LICENSE).
