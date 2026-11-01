@@ -1,9 +1,10 @@
 # Convex worktrees
 
 <p>
-  <a href="https://fantastic.dev"><img src="assets/fantastic-dev-logo.svg" alt="Fantastic.Dev logo" width="48" height="48"></a><br>
-  <a href="https://fantastic.dev">A Fantastic.Dev Project</a>
+  <a href="https://fantastic.dev"><img src="assets/fantastic-dev-logo.svg" alt="Fantastic.Dev logo" width="48" height="48"></a>
 </p>
+
+[A Fantastic.Dev Project](https://fantastic.dev)
 
 Run multiple Git worktrees with independent local Convex backends, databases, ports and environment files. Includes setup, start, stop, teardown, explicit cleanup and stale-reservation pruning.
 
