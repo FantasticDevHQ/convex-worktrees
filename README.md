@@ -1,5 +1,10 @@
 # Convex worktrees
 
+<p>
+  <a href="https://fantastic.dev"><img src="assets/fantastic-dev-logo.svg" alt="Fantastic.Dev logo" width="48" height="48"></a><br>
+  <a href="https://fantastic.dev">A Fantastic.Dev Project</a>
+</p>
+
 Run multiple Git worktrees with independent local Convex backends, databases, ports and environment files. Includes setup, start, stop, teardown, explicit cleanup and stale-reservation pruning.
 
 The scripts run noninteractively in editors, coding agents and CI. Local development needs no Convex account, cloud development deployment or copied cloud credentials.
