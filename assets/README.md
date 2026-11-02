@@ -8,7 +8,7 @@ Use a centered official logo, project title and one-sentence tagline. Keep the c
 
 Use two badge rows:
 
-- Brand links: website, GitHub, YouTube and Twitter / X. Use Shields' `for-the-badge` style, Fantastic green `94C173` for the website, and charcoal `0c0e13` with white icons for the social buttons.
+- Brand links: website, GitHub, YouTube and Twitter / X. Use Shields' `for-the-badge` style, Fantastic green `94C173` for the website, YouTube red `FF0033` for YouTube, and charcoal `0c0e13` with white icons for GitHub and Twitter / X.
 - Project facts: live CI status, license and GitHub stars. Use `flat-square` with the default Shields colors for labels and values. Do not override `color`, `labelColor` or `logoColor` for live project-fact badges; npm versions, downloads, licenses and CI status retain their standard colors.
 
 Follow with a few links into the project's own documentation. All badge images need descriptive alt text and a surrounding link to the relevant destination. Use `&amp;` between URL query parameters inside HTML attributes.
