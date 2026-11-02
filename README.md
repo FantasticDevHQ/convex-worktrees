@@ -16,9 +16,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/FantasticDevHQ/convex-worktrees/actions/workflows/check.yml"><img src="https://img.shields.io/github/actions/workflow/status/FantasticDevHQ/convex-worktrees/check.yml?branch=main&amp;style=flat-square&amp;label=checks&amp;labelColor=0c0e13" alt="Repository checks on main" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/FantasticDevHQ/convex-worktrees?style=flat-square&amp;labelColor=0c0e13&amp;color=94C173" alt="MIT license" /></a>
-  <a href="https://github.com/FantasticDevHQ/convex-worktrees/stargazers"><img src="https://img.shields.io/github/stars/FantasticDevHQ/convex-worktrees?style=flat-square&amp;label=stars&amp;labelColor=0c0e13&amp;color=94C173" alt="GitHub stars" /></a>
+  <a href="https://github.com/FantasticDevHQ/convex-worktrees/actions/workflows/check.yml"><img src="https://img.shields.io/github/actions/workflow/status/FantasticDevHQ/convex-worktrees/check.yml?branch=main&amp;style=flat-square&amp;label=checks" alt="Repository checks on main" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/FantasticDevHQ/convex-worktrees?style=flat-square" alt="MIT license" /></a>
+  <a href="https://github.com/FantasticDevHQ/convex-worktrees/stargazers"><img src="https://img.shields.io/github/stars/FantasticDevHQ/convex-worktrees?style=flat-square&amp;label=stars" alt="GitHub stars" /></a>
 </p>
 
 <p align="center">

@@ -1,6 +1,6 @@
 # Fantastic.Dev OSS header
 
-The root [README](../README.md) is the first design pilot for a shared Fantastic.Dev OSS header. Other repositories should adopt it after owner review.
+The root [README](../README.md) is the first design pilot for a shared Fantastic.Dev OSS header. The owner approved the layout for sequential adoption across other repositories. Keep brand/social colors separate from the default colors of project-fact badges.
 
 ## Layout
 
@@ -9,7 +9,7 @@ Use a centered official logo, project title and one-sentence tagline. Keep the c
 Use two badge rows:
 
 - Brand links: website, GitHub, YouTube and Twitter / X. Use Shields' `for-the-badge` style, Fantastic green `94C173` for the website, and charcoal `0c0e13` with white icons for the social buttons.
-- Project facts: live CI status, license and GitHub stars. Use `flat-square` with charcoal labels and green values. Let the CI badge retain its automatic success/failure color.
+- Project facts: live CI status, license and GitHub stars. Use `flat-square` with the default Shields colors for labels and values. Do not override `color`, `labelColor` or `logoColor` for live project-fact badges; npm versions, downloads, licenses and CI status retain their standard colors.
 
 Follow with a few links into the project's own documentation. All badge images need descriptive alt text and a surrounding link to the relevant destination. Use `&amp;` between URL query parameters inside HTML attributes.
 
@@ -41,8 +41,8 @@ A [Fantastic.Dev](https://fantastic.dev) Project
 For a package published on npmjs.com, add live version and monthly download badges to the project-facts row. Link both to the package page. For example, the confirmed package `@fantastic.dev/convex-tinybird` uses:
 
 ```markdown
-[![npm version](https://img.shields.io/npm/v/@fantastic.dev/convex-tinybird?style=flat-square&labelColor=0c0e13&color=94C173)](https://www.npmjs.com/package/@fantastic.dev/convex-tinybird)
-[![npm monthly downloads](https://img.shields.io/npm/dm/@fantastic.dev/convex-tinybird?style=flat-square&labelColor=0c0e13&color=94C173)](https://www.npmjs.com/package/@fantastic.dev/convex-tinybird)
+[![npm version](https://img.shields.io/npm/v/@fantastic.dev/convex-tinybird?style=flat-square)](https://www.npmjs.com/package/@fantastic.dev/convex-tinybird)
+[![npm monthly downloads](https://img.shields.io/npm/dm/@fantastic.dev/convex-tinybird?style=flat-square)](https://www.npmjs.com/package/@fantastic.dev/convex-tinybird)
 ```
 
 For HTML rows, wrap each image in an anchor and escape the query separators. Replace the package name in both image and destination URLs for each project. Do not infer publication from a root `package.json`: monorepos can publish nested packages while marking the root private.
