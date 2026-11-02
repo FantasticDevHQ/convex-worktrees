@@ -1,24 +1,55 @@
-# Fantastic.Dev badge
+# Fantastic.Dev OSS header
 
-Use the compact badge to identify a Fantastic.Dev project. The generated SVG is vendored here so README rendering does not depend on access to the brand-kit repository or a live badge request.
+The root [README](../README.md) is the first design pilot for a shared Fantastic.Dev OSS header. Other repositories should adopt it after owner review.
+
+## Layout
+
+Use a centered official logo, project title and one-sentence tagline. Keep the credit as `A [Fantastic.Dev](https://fantastic.dev) Project`, with only the brand name linked. In an HTML paragraph, use `A <a href="https://fantastic.dev">Fantastic.Dev</a> Project`.
+
+Use two badge rows:
+
+- Brand links: website, GitHub, YouTube and Twitter / X. Use Shields' `for-the-badge` style, Fantastic green `94C173` for the website, and charcoal `0c0e13` with white icons for the social buttons.
+- Project facts: live CI status, license and GitHub stars. Use `flat-square` with charcoal labels and green values. Let the CI badge retain its automatic success/failure color.
+
+Follow with a few links into the project's own documentation. All badge images need descriptive alt text and a surrounding link to the relevant destination. Use `&amp;` between URL query parameters inside HTML attributes.
+
+## Official destinations
+
+- Website: https://fantastic.dev
+- GitHub: https://github.com/FantasticDevHQ
+- YouTube: https://www.youtube.com/@FantasticDevHQ
+- Twitter / X: https://twitter.com/FantasticDevHQ
+
+The social destinations are published on the Fantastic.Dev website. These buttons link to profiles without depending on follower-count APIs.
 
 ## Reuse in another repository
 
-Copy `fantastic-dev-badge.svg` and `fantastic-dev-logo.svg` into that repository's `assets/` directory, then paste this Markdown into its root README:
+Copy `fantastic-dev-logo.svg` unchanged into the repository's `assets/` directory. Copy the root README header through its navigation row, then adapt the title, tagline, repository badge paths, workflow filename, selected default branch, license alt text and documentation anchors. Resolve relative image and license paths from the README's directory.
+
+Check the actual license, workflow and registry publication before adding their badges. Do not expose private repository or registry credentials in badge URLs. Public Shields services cannot read private CI status using a reader's GitHub session.
+
+The compact `fantastic-dev-badge.svg` remains available for places that need a smaller credit:
 
 ```markdown
 [![Fantastic.Dev](assets/fantastic-dev-badge.svg)](https://fantastic.dev)
 
-[A Fantastic.Dev Project](https://fantastic.dev)
+A [Fantastic.Dev](https://fantastic.dev) Project
 ```
 
-For a README in another directory, adjust the relative image path. Keep the link to `https://fantastic.dev` and the project note as written.
+## npm packages
 
-If the project is MIT-licensed and has a root `LICENSE` file, this optional row adds a matching license badge:
+For a package published on npmjs.com, add live version and monthly download badges to the project-facts row. Link both to the package page. For example, the confirmed package `@fantastic.dev/convex-tinybird` uses:
 
 ```markdown
-[![Fantastic.Dev](assets/fantastic-dev-badge.svg)](https://fantastic.dev) [![MIT license](https://img.shields.io/badge/license-MIT-94C173?style=flat-square&labelColor=0c0e13)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/@fantastic.dev/convex-tinybird?style=flat-square&labelColor=0c0e13&color=94C173)](https://www.npmjs.com/package/@fantastic.dev/convex-tinybird)
+[![npm monthly downloads](https://img.shields.io/npm/dm/@fantastic.dev/convex-tinybird?style=flat-square&labelColor=0c0e13&color=94C173)](https://www.npmjs.com/package/@fantastic.dev/convex-tinybird)
 ```
+
+For HTML rows, wrap each image in an anchor and escape the query separators. Replace the package name in both image and destination URLs for each project. Do not infer publication from a root `package.json`: monorepos can publish nested packages while marking the root private.
+
+Convex worktrees is an unpublished toolkit, so its header has no npm badges. Coverage badges belong only on projects that publish current coverage results.
+
+Badge references: [static styles and logos](https://shields.io/badges/), [workflow status](https://shields.io/badges/git-hub-actions-workflow-status), [license](https://shields.io/badges/git-hub-license), [stars](https://shields.io/badges/git-hub-repo-stars), [npm version](https://shields.io/badges/npm-version), [npm downloads](https://shields.io/badges/npm-downloads).
 
 ## Source and appearance
 

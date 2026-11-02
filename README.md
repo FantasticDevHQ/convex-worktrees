@@ -1,8 +1,31 @@
-# Convex worktrees
+<p align="center">
+  <a href="https://fantastic.dev"><img src="assets/fantastic-dev-logo.svg" width="80" height="80" alt="Fantastic.Dev" /></a>
+</p>
 
-[![Fantastic.Dev](assets/fantastic-dev-badge.svg)](https://fantastic.dev) [![MIT license](https://img.shields.io/badge/license-MIT-94C173?style=flat-square&labelColor=0c0e13)](LICENSE)
+<h1 align="center">Convex worktrees</h1>
 
-A [Fantastic.Dev](https://fantastic.dev) Project
+<p align="center"><strong>Parallel worktrees. Independent Convex backends.</strong></p>
+
+<p align="center">A <a href="https://fantastic.dev">Fantastic.Dev</a> Project</p>
+
+<p align="center">
+  <a href="https://fantastic.dev"><img src="https://img.shields.io/badge/Fantastic.dev-94C173?style=for-the-badge&amp;logoColor=0c0e13" alt="Visit Fantastic.Dev" /></a>
+  <a href="https://github.com/FantasticDevHQ"><img src="https://img.shields.io/badge/GitHub-0c0e13?style=for-the-badge&amp;logo=github&amp;logoColor=white" alt="Fantastic.Dev on GitHub" /></a>
+  <a href="https://www.youtube.com/@FantasticDevHQ"><img src="https://img.shields.io/badge/YouTube-0c0e13?style=for-the-badge&amp;logo=youtube&amp;logoColor=white" alt="Fantastic.Dev on YouTube" /></a>
+  <a href="https://twitter.com/FantasticDevHQ"><img src="https://img.shields.io/badge/Twitter_%2F_X-0c0e13?style=for-the-badge&amp;logo=x&amp;logoColor=white" alt="Fantastic.Dev on Twitter / X" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/FantasticDevHQ/convex-worktrees/actions/workflows/check.yml"><img src="https://img.shields.io/github/actions/workflow/status/FantasticDevHQ/convex-worktrees/check.yml?branch=main&amp;style=flat-square&amp;label=checks&amp;labelColor=0c0e13" alt="Repository checks on main" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/FantasticDevHQ/convex-worktrees?style=flat-square&amp;labelColor=0c0e13&amp;color=94C173" alt="MIT license" /></a>
+  <a href="https://github.com/FantasticDevHQ/convex-worktrees/stargazers"><img src="https://img.shields.io/github/stars/FantasticDevHQ/convex-worktrees?style=flat-square&amp;label=stars&amp;labelColor=0c0e13&amp;color=94C173" alt="GitHub stars" /></a>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick start</a> · <a href="#have-my-agent-set-this-up">Agent setup</a> · <a href="#daily-use">Daily use</a>
+</p>
+
+---
 
 Run multiple Git worktrees with independent local Convex backends, databases, ports and environment files. Includes setup, start, stop, teardown, explicit cleanup and stale-reservation pruning.
 
