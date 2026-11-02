@@ -2,7 +2,7 @@
 
 [![Fantastic.Dev](assets/fantastic-dev-badge.svg)](https://fantastic.dev) [![MIT license](https://img.shields.io/badge/license-MIT-94C173?style=flat-square&labelColor=0c0e13)](LICENSE)
 
-[A Fantastic.Dev Project](https://fantastic.dev)
+A [Fantastic.Dev](https://fantastic.dev) Project
 
 Run multiple Git worktrees with independent local Convex backends, databases, ports and environment files. Includes setup, start, stop, teardown, explicit cleanup and stale-reservation pruning.
 
