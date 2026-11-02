@@ -2,7 +2,7 @@
   <a href="https://fantastic.dev"><img src="assets/fantastic-dev-logo.svg" width="80" height="80" alt="Fantastic.Dev" /></a>
 </p>
 
-<h1 align="center">Convex worktrees</h1>
+<h1 align="center">Convex Worktrees</h1>
 
 <p align="center"><strong>Parallel worktrees. Independent Convex backends.</strong></p>
 
