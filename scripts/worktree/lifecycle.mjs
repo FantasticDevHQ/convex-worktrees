@@ -24,6 +24,7 @@ import {
   convexArgs,
   assertBootstrapIsolation,
 } from "./config.mjs";
+import { serviceStatus } from "./services.mjs";
 import { run, ownedRunning, stopOnly } from "./processes.mjs";
 import { refreshCheckout } from "./freshness.mjs";
 
@@ -36,7 +37,10 @@ export async function setup(prepareOnly) {
     await safe(dir);
     await safe(stateFile);
     await fs.mkdir(dir, { recursive: true, mode: 0o700 });
-    if (existsSync(stateFile)) await state();
+    if (existsSync(stateFile)) {
+      const existing = await state();
+      if (existing.serviceProfile && await ownedRunning(existing)) throw new Error("Services already running. Stop them before setup.");
+    }
     else await json(stateFile, { version: 1, root, id: randomUUID(), mode: "none" });
     await runHooks(profile, "afterPrepare", await state());
     console.log("Worktree ready; no backend or frontend services configured.");
@@ -210,9 +214,17 @@ export async function teardown(cleanup = false) {
         : "Cleanup deletes this worktree database. Pass --yes explicitly.",
     );
   if (s.mode === "none") {
+    await stopOnly(s);
     if (cleanup) {
       await safe(dir);
+      if (s.serviceProfile) {
+        await serviceStatus(s);
+        await safe(path.join(dir, "backend.log"));
+        await fs.rm(path.join(dir, "backend.log"), { force: true });
+        await fs.rm(path.join(dir, "services.json"), { force: true });
+      }
       await fs.rm(stateFile);
+
       // Only remove our own identity file. A user may keep unrelated files in
       // .worktree; an empty directory can be removed without recursive deletion.
       try { await fs.rmdir(dir); }
