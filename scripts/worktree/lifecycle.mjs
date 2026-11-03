@@ -27,7 +27,10 @@ import {
 import { run, ownedRunning, stopOnly } from "./processes.mjs";
 import { refreshCheckout } from "./freshness.mjs";
 
+import { validateProfiles, runHooks } from "./hooks.mjs";
+
 export async function setup(prepareOnly) {
+  const profile = validateProfiles();
   await refreshCheckout(root);
   if (layout.convex === false) {
     await safe(dir);
@@ -35,6 +38,7 @@ export async function setup(prepareOnly) {
     await fs.mkdir(dir, { recursive: true, mode: 0o700 });
     if (existsSync(stateFile)) await state();
     else await json(stateFile, { version: 1, root, id: randomUUID(), mode: "none" });
+    await runHooks(profile, "afterPrepare", await state());
     console.log("Worktree ready; no backend or frontend services configured.");
     return;
   }
@@ -140,6 +144,7 @@ export async function setup(prepareOnly) {
     }
     return s;
   });
+  await runHooks(profile, "afterPrepare", s);
   if (!prepareOnly)
     await projectLock(async () => {
       // First run uses the documented non-TTY anonymous flow, which generates a unique
@@ -169,6 +174,8 @@ export async function setup(prepareOnly) {
         });
       }
       await checkConfig(s, true);
+      await runHooks(profile, "beforeImport", s);
+      await safe(path.join(dir, "backend.env"));
       await run(
         [
           cli(),
@@ -183,6 +190,7 @@ export async function setup(prepareOnly) {
       );
       await run(convexArgs(s, ["--once"]), s);
       await checkConfig(s, true);
+      await runHooks(profile, "afterPush", s);
     }, "shared-convex-cache");
   console.log(
     `Worktree ${prepareOnly ? "prepared" : "ready"}: web=${s.ports.web} convex=${s.ports.cloud} site=${s.ports.site}`,

@@ -9,12 +9,16 @@ import { ownedRunning, serve, start, stopOnly } from "./processes.mjs";
 import { setup, teardown, prune } from "./lifecycle.mjs";
 import { packageBin } from "./dependencies.mjs";
 
+import { validateProfiles, runHooks } from "./hooks.mjs";
+
 export async function main() {
+  if (["setup", "start"].includes(process.argv[2])) validateProfiles();
   const command = process.argv[2];
   if (layout.convex === false && ["start", "stop", "dev", "backend", "frontend", "_serve"].includes(command)) {
     await state();
     if (!["start", "stop"].includes(command) || process.argv.includes("--frontend"))
       throw new Error("No development services are configured with convex:false. Run development commands directly in this checkout.");
+    if (command === "start") await runHooks(validateProfiles(), "beforeStart", await state());
     console.log("No backend or frontend services configured; nothing to start or stop.");
     return;
   }
