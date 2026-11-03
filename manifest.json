@@ -21,16 +21,16 @@
     },
     "worktree.test.mjs": {
       "path": "scripts/worktree/worktree.test.mjs",
-      "sha256": "bf0bf4d7448f66dd32cab55d4172747633b2412cd10cd4ae123ac36fa3520ad1",
+      "sha256": "40804447633faaf24e81772d778d4bd9cbec0038d4e6711726161c66e750823d",
       "adaptation": "Relocated under scripts/worktree; module/CLI references updated."
     },
     "cli.mjs": {
       "path": "scripts/worktree/cli.mjs",
-      "sha256": "9cad8ad1f78fded7f89516cb251c2149b92249580c120fe0c03c6627ca96b237"
+      "sha256": "9677de05974e44e44eedfad444d52286e844dd2d05ad737a5e4ac242d29eff16"
     },
     "commands.mjs": {
       "path": "scripts/worktree/commands.mjs",
-      "sha256": "d0e27322e9f38a1d79c6a8a38dfa4c4810f686f889fa0fa2f74447bbcbd1531e"
+      "sha256": "f60491736d191d47539251135b46e83dfe3c596accab87f5c90f6d44c3fc1c18"
     },
     "config.mjs": {
       "path": "scripts/worktree/config.mjs",
@@ -50,11 +50,11 @@
     },
     "lifecycle.mjs": {
       "path": "scripts/worktree/lifecycle.mjs",
-      "sha256": "01e58793a6e786ea79c2b4562349ee36377a0df3e561f289fa7d6d5ee7627d20"
+      "sha256": "a1f5e3bb14b1d0d78ef14b8605cd2080159c4ae024ded2ba5ff498b8bae59a7f"
     },
     "processes.mjs": {
       "path": "scripts/worktree/processes.mjs",
-      "sha256": "e55441a15338a817e54fd8457ca41234b1b4775e904c735d63535bbcbada6c71"
+      "sha256": "4cd282a7b58bd7c514d2a4a5d933c20e2213811a2c7e887bf66328d061569dc0"
     },
     "registry.mjs": {
       "path": "scripts/worktree/registry.mjs",
@@ -83,6 +83,14 @@
     "LICENSE": {
       "path": "scripts/worktree/LICENSE",
       "sha256": "bcb31233265fc469a3d06a09b5effc3c79262ab356dfca3648333af16a60a425"
+    },
+    "hooks.mjs": {
+      "path": "scripts/worktree/hooks.mjs",
+      "sha256": "9bd166526cd854f32b60c2bc0ea147ce7824dcb2c3c1c3cd7d89204df85b17cf"
+    },
+    "PROFILES.md": {
+      "path": "scripts/worktree/PROFILES.md",
+      "sha256": "564791c7eb7217c610a95e5f5003b11de02d51b3d2c7ba0d9937354d19652b79"
     }
   },
   "formatVersion": 1

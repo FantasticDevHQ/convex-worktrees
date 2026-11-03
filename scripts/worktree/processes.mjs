@@ -183,7 +183,10 @@ export async function serve(s, withFrontend = false) {
   }
 }
 
+import { validateProfiles, runHooks } from "./hooks.mjs";
+
 export async function start(withFrontend = false) {
+  const profile = validateProfiles();
   const s = await state();
   if (await ownedRunning(s)) {
     console.log("Already running.");
@@ -192,6 +195,7 @@ export async function start(withFrontend = false) {
   await checkConfig(s, true);
   convexArgs(s);
   if (withFrontend) packageBin("next", "next", [frontend, root]);
+  await runHooks(profile, "beforeStart", s);
   await reserve(s);
   await safe(path.join(dir, "backend.log"));
   const log = openSync(path.join(dir, "backend.log"), "w", 0o600);
