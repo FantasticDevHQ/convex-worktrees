@@ -30,7 +30,7 @@
     },
     "commands.mjs": {
       "path": "scripts/worktree/commands.mjs",
-      "sha256": "f60491736d191d47539251135b46e83dfe3c596accab87f5c90f6d44c3fc1c18"
+      "sha256": "74b90758b2f9dff75dbfff6f06ca16140224cd33630e8900227dde5d6bc56943"
     },
     "config.mjs": {
       "path": "scripts/worktree/config.mjs",
@@ -50,11 +50,11 @@
     },
     "lifecycle.mjs": {
       "path": "scripts/worktree/lifecycle.mjs",
-      "sha256": "a1f5e3bb14b1d0d78ef14b8605cd2080159c4ae024ded2ba5ff498b8bae59a7f"
+      "sha256": "e2aaeb33cbd1050532b05716a94b9188e0b0f3f7030db1909f0ada2e427bcadf"
     },
     "processes.mjs": {
       "path": "scripts/worktree/processes.mjs",
-      "sha256": "4cd282a7b58bd7c514d2a4a5d933c20e2213811a2c7e887bf66328d061569dc0"
+      "sha256": "3f2e98952ae20bcb5344e990a09fcc3d0ac66d8d13415b15c9cf097098d4f35b"
     },
     "registry.mjs": {
       "path": "scripts/worktree/registry.mjs",
@@ -86,11 +86,19 @@
     },
     "hooks.mjs": {
       "path": "scripts/worktree/hooks.mjs",
-      "sha256": "9bd166526cd854f32b60c2bc0ea147ce7824dcb2c3c1c3cd7d89204df85b17cf"
+      "sha256": "963b33df5921eda7d100418312e706ad60452ebddc7f452a25edfaa7768499df"
     },
     "PROFILES.md": {
       "path": "scripts/worktree/PROFILES.md",
-      "sha256": "564791c7eb7217c610a95e5f5003b11de02d51b3d2c7ba0d9937354d19652b79"
+      "sha256": "85c8adbe251e363d135b7acb9f1cf9fb3780623b08c2b2f98e1b60f84e49d798"
+    },
+    "services.mjs": {
+      "path": "scripts/worktree/services.mjs",
+      "sha256": "dd25c62b88745da8169086f9620c790ff9b732993248ed2249e29772a5a2ed81"
+    },
+    "services.test.mjs": {
+      "path": "scripts/worktree/services.test.mjs",
+      "sha256": "eb31ed9a6dc67a5ef1573bd05b067c5a51470ba6eda2b6d990b805af5a85bef0"
     }
   },
   "formatVersion": 1

@@ -35,7 +35,7 @@ and lifecycle steps. Commands are executable plus literal argv, with no shell.
 Paths are relative to the worktree root. No directory scanning occurs; adding an
 unlisted helper file has no effect. Existing editor `prepareCommand` integration
 continues to invoke setup as before; no new editor execution policy is introduced.
-Long-running services are reserved for CNW-2.
+Long-running services use the separate declarations below.
 
 Each child receives `WORKTREE_CONTEXT`, a JSON object with `version`, `profile`,
 `phase`, `id`, `root`, `backend`, `frontend`, `stateDirectory`, `environmentFile`,
@@ -50,3 +50,67 @@ The default timeout is 180 seconds; `timeoutMs` is an integer from 1 to 3600000.
 Timeout or runner SIGINT/SIGTERM sends SIGTERM to the direct child, then SIGKILL
 after two seconds if needed. Hooks must not detach processes or leave background
 children. Interruptions fail the phase even if the child exits zero.
+
+## Managed services
+
+A profile can also declare named services, separate from hooks:
+
+```json
+{
+  "profiles": {
+    "example": {
+      "services": {
+        "listener": {
+          "command": ["node", "scripts/example/listener.mjs"],
+          "readiness": {
+            "command": ["node", "scripts/example/wait-for-listener.mjs"],
+            "timeoutMs": 30000
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Run `start --profile example`. All declared services are required for that
+profile. Each readiness command must exit zero only when its service is usable;
+it can poll a local endpoint or an identity-specific readiness file. A nonzero
+exit is an immediate failure. Readiness is mandatory and bounded to 1–120000 ms.
+No checks are inferred from names or directories. Scripts must clear stale
+readiness markers or verify the current process identity themselves.
+
+Startup order is: explicit `beforeStart` hooks, backend readiness (if enabled),
+then services in declaration order with each readiness check, then frontend
+startup (if requested). Start reports success after all service checks pass.
+Setup still runs only setup hooks; it does not start auxiliary services.
+
+Unlike hook selection, the service profile selected by start is saved in owned
+worktree state. `start` after `stop` reuses it. Omitted selection does not run
+hooks; `start --profile example` reruns only `beforeStart`, never setup phases.
+Repeated start while active reuses the supervisor and children without rerunning
+hooks. Stop before selecting a different active profile. To start without
+services, select an explicit empty profile after stop. Changing declarations
+requires stop/start; no automatic restart or dependency graph is provided.
+
+Service and readiness commands receive the same `WORKTREE_CONTEXT` contract with
+`phase: "service"`. Their working directory is the worktree root and arguments
+are literal. The supervisor records each service PID, readiness and failure in
+`.worktree/services.json`, tied to the worktree ID. These PIDs are evidence only:
+shutdown signals child objects owned by the checked supervisor, never PID lists,
+ports or names. `status` prints JSON and exits nonzero for a named service failure.
+An unexpected required-service exit fails the profile and stops sibling children.
+
+Stop sends SIGINT to owned children, then SIGKILL after two seconds if required.
+The supervisor waits for child closure. Readiness timeout kills its probe and
+fails startup; failure stops already-started children. Teardown also stops owned
+services. Stop and teardown preserve profile selection, consumer credentials and
+remote associations. Explicit cleanup removes managed state; consumer files and
+remote resource deletion remain the consumer's responsibility. Services must stay
+in the foreground and must not detach untracked descendants. There is no remote
+resource cleanup policy in this toolkit.
+
+The fixture tests in `services.test.mjs` provide a runnable generic two-worktree
+demonstration: delayed readiness, distinct contexts, repeated start, one-worktree
+stop, restart, teardown, startup timeout and runtime failure. They use backend-free
+fixtures; the toolkit itself continues to create no backend or frontend.
