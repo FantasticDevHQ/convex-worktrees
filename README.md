@@ -73,18 +73,18 @@ https://github.com/FantasticDevHQ/convex-worktrees
 
 4. Follow the application's review workflow and commit only adoption changes so
    setup can run from a clean checkout. From the application root, run:
-   node --test scripts/worktree/*.test.mjs
-   node scripts/worktree/cli.mjs setup
-   node scripts/worktree/cli.mjs start
-   node scripts/worktree/cli.mjs stop
-   node scripts/worktree/cli.mjs setup
-   node scripts/worktree/cli.mjs start
+   node --test scripts/worktree/*.test.mts
+   node scripts/worktree/cli.mts setup
+   node scripts/worktree/cli.mts start
+   node scripts/worktree/cli.mts stop
+   node scripts/worktree/cli.mts setup
+   node scripts/worktree/cli.mts start
    Verify repeated setup/restart preserves ports, generated configuration and
    local data. Use disposable test state to verify two real backends have
    isolated rows and teardown/cleanup leaves the sibling running. Adapt the
    supplied local probe examples and run:
-   node --test scripts/worktree/worktree.integration.mjs
-   node scripts/worktree/cli.mjs teardown
+   node --test scripts/worktree/worktree.integration.mts
+   node scripts/worktree/cli.mts teardown
    Use cleanup --yes only for disposable state whose ownership you verified.
 
 5. Prepare the adoption PR and follow this application's review/merge policy.
@@ -103,7 +103,7 @@ for this app, checks passed/not run, and remaining PR/merge steps or blockers.
 
 ### Manual setup
 
-You need Node.js 22+, Git, your application's package manager and an existing Convex application. Use a clean adoption branch and follow your application's change workflow.
+You need Node.js 22.18+, Git, your application's package manager and an existing Convex application. Use a clean adoption branch and follow your application's change workflow.
 
 1. From your application root, copy the toolkit into it:
 
@@ -129,11 +129,11 @@ You need Node.js 22+, Git, your application's package manager and an existing Co
 4. Commit the adoption changes so the checkout is clean, then provision and start the local backend:
 
    ```sh
-   node --test scripts/worktree/*.test.mjs
-   node scripts/worktree/cli.mjs setup
-   node scripts/worktree/cli.mjs start
+   node --test scripts/worktree/*.test.mts
+   node scripts/worktree/cli.mts setup
+   node scripts/worktree/cli.mts start
    # Optional Next.js frontend alongside the backend:
-   # node scripts/worktree/cli.mjs start --frontend
+   # node scripts/worktree/cli.mts start --frontend
    ```
 
    Setup resolves and fetches the selected base branch from `origin`; it stops for resolution/fetch failures, dirty files or divergence instead of discarding changes. Merge and push the adoption changes onto that remote branch before [creating a new worktree](#daily-use), since new checkouts start from the fetched base.
@@ -141,17 +141,21 @@ You need Node.js 22+, Git, your application's package manager and an existing Co
 To stop and release this checkout's ports while keeping its database:
 
 ```sh
-node scripts/worktree/cli.mjs teardown
+node scripts/worktree/cli.mts teardown
 ```
 
 ## Requirements
 
-- Node.js 22+, Git and your application's package manager: Bun, pnpm or npm. The selected manager must be available on PATH.
+- Node.js 22.18+, Git and your application's package manager: Bun, pnpm or npm. The selected manager must be available on PATH.
 - An existing Convex application. Install Convex in the backend workspace or repository root. The toolkit resolves its installed CLI, including pnpm's isolated workspace layout. The optional Next.js CLI resolves from the frontend workspace, then the root.
 - macOS or modern Linux with a compatible glibc/C++ runtime for the Convex binary. Native Windows process checks are not supported; use WSL.
 - Network access for resolving/fetching the remote base branch, installing dependencies and the initial Convex binary/dashboard download.
 
-The optional frontend commands currently target Next.js. Adapt `commands.mjs` and `processes.mjs` for another frontend. Backend-only operation does not start the frontend.
+Toolkit scripts and tests use TypeScript ES modules (`.mts`). Node runs them directly with native type stripping, without a loader or build step. The `.mts` extension preserves ES-module behavior even when the consuming application uses CommonJS. See [Node's TypeScript documentation](https://nodejs.org/api/typescript.html).
+
+The public `node install.mjs` and `node scripts/check.mjs` commands are compatibility launchers for the TypeScript implementations. Existing installations must reconcile renamed `.mjs` files and command references on a clean adoption branch; the installer continues to refuse overwrites.
+
+The optional frontend commands currently target Next.js. Adapt `commands.mts` and `processes.mts` for another frontend. Backend-only operation does not start the frontend.
 
 ## Configure the layout
 
@@ -198,17 +202,17 @@ Merge these scripts into your application's root `package.json`:
 
 ```json
 {
-  "worktree:setup": "node scripts/worktree/cli.mjs setup",
-  "worktree:start": "node scripts/worktree/cli.mjs start",
-  "worktree:stop": "node scripts/worktree/cli.mjs stop",
-  "worktree:teardown": "node scripts/worktree/cli.mjs teardown",
-  "worktree:cleanup": "node scripts/worktree/cli.mjs cleanup",
-  "worktree:prune": "node scripts/worktree/cli.mjs prune",
-  "dev": "node scripts/worktree/cli.mjs dev",
-  "dev:backend": "node scripts/worktree/cli.mjs backend",
-  "dev:frontend": "node scripts/worktree/cli.mjs frontend",
-  "test:worktree": "node --test scripts/worktree/*.test.mjs",
-  "test:worktree:integration": "node --test scripts/worktree/worktree.integration.mjs"
+  "worktree:setup": "node scripts/worktree/cli.mts setup",
+  "worktree:start": "node scripts/worktree/cli.mts start",
+  "worktree:stop": "node scripts/worktree/cli.mts stop",
+  "worktree:teardown": "node scripts/worktree/cli.mts teardown",
+  "worktree:cleanup": "node scripts/worktree/cli.mts cleanup",
+  "worktree:prune": "node scripts/worktree/cli.mts prune",
+  "dev": "node scripts/worktree/cli.mts dev",
+  "dev:backend": "node scripts/worktree/cli.mts backend",
+  "dev:frontend": "node scripts/worktree/cli.mts frontend",
+  "test:worktree": "node --test scripts/worktree/*.test.mts",
+  "test:worktree:integration": "node --test scripts/worktree/worktree.integration.mts"
 }
 ```
 
@@ -233,9 +237,9 @@ Install command references: [Bun](https://bun.sh/docs/pm/cli/install), [pnpm](ht
 Once the tooling is on the selected base branch on `origin`, create and provision a new branch and checkout from its freshly fetched remote ref:
 
 ```sh
-node scripts/worktree/cli.mjs setup --path ../app-feature --branch feature/my-change
+node scripts/worktree/cli.mts setup --path ../app-feature --branch feature/my-change
 cd ../app-feature
-node scripts/worktree/cli.mjs start
+node scripts/worktree/cli.mts start
 ```
 
 New-worktree setup installs dependencies with the detected manager. An editor can also create the checkout itself; install dependencies and run ordinary setup there. Setup provisions and pushes the app's actual schema/components, then exits. Start runs the supervisor. Use the `dev` package script for a foreground session. Do not start a second backend in an already running checkout.
@@ -261,7 +265,7 @@ Setup resolves the remote default or explicit `baseBranch`, fetches it from `ori
 | `worktree:cleanup --yes` | Stops owned processes | Released | Deleted with owned generated configuration |
 | `worktree:prune` | Does not kill processes | Removes eligible stale reservations | Preserved |
 
-Run lifecycle commands directly as `node scripts/worktree/cli.mjs <command>`, or use your package manager's `run` command. Cleanup requires explicit `--yes`:
+Run lifecycle commands directly as `node scripts/worktree/cli.mts <command>`, or use your package manager's `run` command. Cleanup requires explicit `--yes`:
 
 | Manager | Cleanup through package scripts |
 | --- | --- |
@@ -287,7 +291,7 @@ With the sample layout, the database is in `packages/backend/.convex/local/defau
 
 ## Editors, agents and CI
 
-Use the same lifecycle from any tool that runs shell commands. A setup hook should install dependencies and run setup, then exit. A teardown hook should run `node scripts/worktree/cli.mjs teardown` before removing the checkout.
+Use the same lifecycle from any tool that runs shell commands. A setup hook should install dependencies and run setup, then exit. A teardown hook should run `node scripts/worktree/cli.mts teardown` before removing the checkout.
 
 For CI, provide access to `origin`, its advertised default branch or configured `baseBranch`, and enough Git history for ancestry checks. Install Git, Node and the selected package manager, then run setup/start, your tests and teardown in an always-run cleanup step. Abrupt machine termination cannot guarantee cleanup, so prune stale reservations on persistent hosts. CI runner selection belongs to the consuming application.
 
@@ -306,7 +310,7 @@ The optional real-backend integration test runs inside a consuming application, 
 1. Merge the table in `examples/schema.ts` into your application's Convex schema.
 2. Copy `examples/probe.ts` into your app's Convex function directory as `probe.ts`.
 3. Keep these probe functions local to your development/test backend; they are unauthenticated and are not intended for a public deployment.
-4. Commit the test setup and required lockfile to the app's selected remote base branch, then run `node --test scripts/worktree/worktree.integration.mjs` from a clean app checkout.
+4. Commit the test setup and required lockfile to the app's selected remote base branch, then run `node --test scripts/worktree/worktree.integration.mts` from a clean app checkout.
 
 The integration test deploys the app schema in two temporary worktrees, writes different probe records, verifies database isolation and restart persistence, tests busy-port refusal and checks sibling-safe teardown/cleanup. It exercises backends only; test your frontend separately if using the optional frontend adapter. Adapt the probe operations if your app's schema or auth needs another test strategy.
 
@@ -315,30 +319,30 @@ The integration test deploys the app schema in two temporary worktrees, writes d
 This repository follows the same [PR standard](docs/pull-request-standard.md) and worktree lifecycle as the applications adopting it. Its own adapter sets `convex: false` and `frontend: false`, because the toolkit has no application backend or development server.
 
 ```sh
-node scripts/worktree/cli.mjs setup
+node scripts/worktree/cli.mts setup
 node scripts/check.mjs
-node scripts/worktree/cli.mjs teardown
+node scripts/worktree/cli.mts teardown
 # Remove only this checkout's owned identity when finished:
-node scripts/worktree/cli.mjs cleanup --yes
+node scripts/worktree/cli.mts cleanup --yes
 ```
 
 In this backend-free mode, setup still fetches the selected base and records checkout ownership. Start, stop and teardown validate that identity but launch no services or reserve ports. Explicit cleanup removes only the owned identity file and preserves unrelated files. Creating a dependency-free toolkit worktree does not require a package-manager install or an artificial lockfile.
 
 The installer exports `scripts/worktree.config.example.json` as the adopting application's `scripts/worktree.config.json`. Those app defaults enable Convex; the toolkit's own backend-free adapter is never copied into an application.
 
-Run `node scripts/check.mjs` before submitting a PR. It includes lifecycle, installer and PR-standard tests, then verifies the installed export and its tests in a path containing spaces. CI runs these checks on UbiCloud. The PR metadata workflow executes trusted base-branch code; activation and required-status protection are separate concerns described in the PR standard.
+Run `npm ci`, `npm run typecheck` and `node scripts/check.mjs` before submitting a PR. Type checking covers the installer, worktree modules, PR tooling and tests with strict TypeScript settings. Only compiler verification needs development dependencies; installed toolkit commands and runtime tests remain dependency-free. The runtime check includes lifecycle, installer and PR-standard tests, then verifies the installed export and its tests in a path containing spaces. Test files run sequentially so independent fixture registries cannot race for the same host ports. Tests still exercise concurrent operations within each fixture. CI runs compiler verification and runtime checks on UbiCloud with Node 22.18 and 24. The PR metadata workflow executes trusted base-branch code; activation and required-status protection are separate concerns described in the PR standard.
 
 ## Modules
 
-- `cli.mjs` and `commands.mjs`: command entry points and dispatch.
-- `context.mjs`: repository and layout paths.
-- `freshness.mjs`: remote base-branch resolution, refresh checks and safe fast-forward behavior.
-- `registry.mjs`: locking, reservations and port probes.
-- `dependencies.mjs`: package-manager detection, frozen installs and workspace-local CLI resolution.
-- `config.mjs` and `files.mjs`: state validation, environment selection and safe file operations.
-- `processes.mjs`: owned process supervision and graceful shutdown.
-- `lifecycle.mjs`: setup, teardown, cleanup and prune.
-- `installer.mjs`: verified source copying used by the Node installation entry point.
+- `cli.mts` and `commands.mts`: command entry points and dispatch.
+- `context.mts`: repository and layout paths.
+- `freshness.mts`: remote base-branch resolution, refresh checks and safe fast-forward behavior.
+- `registry.mts`: locking, reservations and port probes.
+- `dependencies.mts`: package-manager detection, frozen installs and workspace-local CLI resolution.
+- `config.mts` and `files.mts`: state validation, environment selection and safe file operations.
+- `processes.mts`: owned process supervision and graceful shutdown.
+- `lifecycle.mts`: setup, teardown, cleanup and prune.
+- `installer.mts`: verified source copying used by the Node installation entry point.
 
 `manifest.json` records checksums for the exported implementation, configuration and tests. Update the hashes when adapting files before reusing the installer.
 

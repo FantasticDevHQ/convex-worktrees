@@ -5,15 +5,23 @@
   "type": "module",
   "scripts": {
     "test": "node scripts/check.mjs",
-    "test:worktree": "node --test scripts/worktree/*.test.mjs",
-    "test:integration": "node --test scripts/worktree/worktree.integration.mjs",
-    "check:all": "node scripts/check.mjs",
-    "test:pr-standard": "node --test scripts/pr-standard.test.mjs scripts/enforce-pr-standard.test.mjs",
-    "worktree:setup": "node scripts/worktree/cli.mjs setup",
-    "worktree:start": "node scripts/worktree/cli.mjs start",
-    "worktree:stop": "node scripts/worktree/cli.mjs stop",
-    "worktree:teardown": "node scripts/worktree/cli.mjs teardown",
-    "worktree:cleanup": "node scripts/worktree/cli.mjs cleanup",
-    "worktree:prune": "node scripts/worktree/cli.mjs prune"
+    "test:worktree": "node --test --test-concurrency=1 scripts/worktree/*.test.mts",
+    "test:integration": "node --test scripts/worktree/worktree.integration.mts",
+    "check:all": "npm run typecheck && node scripts/check.mjs",
+    "test:pr-standard": "node --test scripts/pr-standard.test.mts scripts/enforce-pr-standard.test.mts",
+    "worktree:setup": "node scripts/worktree/cli.mts setup",
+    "worktree:start": "node scripts/worktree/cli.mts start",
+    "worktree:stop": "node scripts/worktree/cli.mts stop",
+    "worktree:teardown": "node scripts/worktree/cli.mts teardown",
+    "worktree:cleanup": "node scripts/worktree/cli.mts cleanup",
+    "worktree:prune": "node scripts/worktree/cli.mts prune",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~5.9.3"
   }
 }

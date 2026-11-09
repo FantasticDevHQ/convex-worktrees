@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { validatePullRequest } from "./pr-standard.mjs";
+import { validatePullRequest } from "./pr-standard.mts";
 
 const title = "ci(github): FANT-65 enforce PR standards";
 const body = `## Summary
@@ -108,7 +108,7 @@ test("ignores headings hidden in comments or fenced examples", () => {
 });
 
 test("requires a reviewer-accessible proof link or pasted output", () => {
-  const replaceEvidence = (evidence) =>
+  const replaceEvidence = (evidence: string) =>
     body.replace(/Validator regression tests passed:[^\n]*/, evidence);
   for (const evidence of [
     "Tests passed.",
@@ -240,7 +240,7 @@ test("requires a UI declaration and uploaded screenshot or video for UI changes"
     "- Screenshot: ![Updated flow](https://github.com/user-attachments/assets/screenshot-123)";
   const video = "- Video: https://github.com/user-attachments/assets/video-456";
   const uiBody = body.replace("UI changes: No", "UI changes: Yes");
-  const proof = (text) =>
+  const proof = (text: string) =>
     text.replace("## Agent", `${screenshot}\n${video}\n## Agent`);
   assert.ok(
     validatePullRequest({ title, body: body.replace("UI changes: No", "") })

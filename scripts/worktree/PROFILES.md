@@ -7,15 +7,15 @@ Add profiles to the consuming app's `scripts/worktree.config.json`:
   "profiles": {
     "example": {
       "hooks": {
-        "afterPrepare": [{"name":"prepare", "command":["node","scripts/example/prepare.mjs"]}],
-        "beforeImport": [{"name":"credentials", "command":["node","scripts/example/credentials.mjs"], "timeoutMs":30000}]
+        "afterPrepare": [{"name":"prepare", "command":["node","scripts/example/prepare.mts"]}],
+        "beforeImport": [{"name":"credentials", "command":["node","scripts/example/credentials.mts"], "timeoutMs":30000}]
       }
     }
   }
 }
 ```
 
-Run `node scripts/worktree/cli.mjs setup --profile example`. Selection is per
+Run `node scripts/worktree/cli.mts setup --profile example`. Selection is per
 invocation; omission runs no profile commands. `start --profile example` runs
 only `beforeStart` hooks, after ownership/config checks and before service startup.
 Selection is also forwarded by `setup --path ... --branch ... --profile example`.
@@ -61,9 +61,9 @@ A profile can also declare named services, separate from hooks:
     "example": {
       "services": {
         "listener": {
-          "command": ["node", "scripts/example/listener.mjs"],
+          "command": ["node", "scripts/example/listener.mts"],
           "readiness": {
-            "command": ["node", "scripts/example/wait-for-listener.mjs"],
+            "command": ["node", "scripts/example/wait-for-listener.mts"],
             "timeoutMs": 30000
           }
         }
@@ -110,7 +110,7 @@ remote resource deletion remain the consumer's responsibility. Services must sta
 in the foreground and must not detach untracked descendants. There is no remote
 resource cleanup policy in this toolkit.
 
-The fixture tests in `services.test.mjs` provide a runnable generic two-worktree
+The fixture tests in `services.test.mts` provide a runnable generic two-worktree
 demonstration: delayed readiness, distinct contexts, repeated start, one-worktree
 stop, restart, teardown, startup timeout and runtime failure. They use backend-free
 fixtures; the toolkit itself continues to create no backend or frontend.

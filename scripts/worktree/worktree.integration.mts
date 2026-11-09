@@ -1,3 +1,4 @@
+import type { BackendState } from "./types.mts";
 // Optional real-backend isolation test for a consuming app with the example probe functions.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -7,15 +8,15 @@ import path from "node:path";
 import { spawn, execFileSync } from "node:child_process";
 import net from "node:net";
 import { existsSync } from "node:fs";
-import { installDependencies } from "./dependencies.mjs";
+import { installDependencies } from "./dependencies.mts";
 
 const source = await realpath(process.cwd());
 const layout = JSON.parse(await readFile(path.join(source, "scripts/worktree.config.json"), "utf8"));
 const backendPath = layout.backend || ".";
 const hasApp = existsSync(path.join(source, backendPath, "convex.json"));
-function run(cwd, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["scripts/worktree/cli.mjs", ...args], {
+function run(cwd: string, args: string[]) {
+  return new Promise<{ code: number | null; output: string }>((resolve, reject) => {
+    const child = spawn(process.execPath, ["scripts/worktree/cli.mts", ...args], {
       cwd,
       env: { ...process.env, CI: "true" },
       stdio: ["ignore", "pipe", "pipe"],
@@ -27,12 +28,12 @@ function run(cwd, args) {
     child.on("exit", (code) => resolve({ code, output }));
   });
 }
-async function ok(cwd, ...args) {
+async function ok(cwd: string, ...args: string[]) {
   const r = await run(cwd, args);
   assert.equal(r.code, 0, r.output.slice(-8000));
   return r;
 }
-async function rpc(s, kind, fn, args = {}) {
+async function rpc(s: BackendState, kind: string, fn: string, args = {}) {
   const response = await fetch(
     `http://127.0.0.1:${s.ports.cloud}/api/${kind}`,
     {
@@ -131,7 +132,7 @@ test(
       ),
     );
     assert.deepEqual(
-      entries.map((rows) => rows.map((r) => r.value)),
+      entries.map((rows) => rows.map((r: { value: string }) => r.value)),
       [["alpha"], ["beta"]],
     );
     console.log(
@@ -191,7 +192,7 @@ test(
     );
     await ok(roots[0], "stop");
     const blocker = net.createServer();
-    await new Promise((resolve) =>
+    await new Promise<void>((resolve) =>
       blocker.listen(states[0].ports.cloud, "127.0.0.1", resolve),
     );
     try {

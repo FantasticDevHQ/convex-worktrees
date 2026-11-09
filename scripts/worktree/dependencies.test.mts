@@ -1,15 +1,13 @@
+import type { TestContext } from "node:test";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, rm, symlink, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-const api = await import("./dependencies.mjs").catch((error) => {
-  if (error.code !== "ERR_MODULE_NOT_FOUND") throw error;
-  return {};
-});
+import * as api from "./dependencies.mts";
 
-async function fixture(t, manifest = {}, files = []) {
+async function fixture(t: TestContext, manifest: Record<string, unknown> = {}, files: string[] = []) {
   const root = await realpath(await mkdtemp(path.join(tmpdir(), "worktree-dependencies-")));
   t.after(() => rm(root, { recursive: true, force: true }));
   await writeFile(path.join(root, "package.json"), JSON.stringify(manifest));
@@ -21,7 +19,7 @@ for (const [manager, lock, command] of [
   ["bun", "bun.lock", ["bun", "install", "--frozen-lockfile"]],
   ["pnpm", "pnpm-lock.yaml", ["pnpm", "install", "--frozen-lockfile"]],
   ["npm", "package-lock.json", ["npm", "ci"]],
-]) {
+] as [string, string, string[]][]) {
   test(`${manager}: metadata chooses the manager and a frozen install`, async (t) => {
     assert.equal(typeof api.installCommand, "function", "Package-manager support is missing");
     const root = await fixture(t, { packageManager: `${manager}@1.2.3` }, [lock]);
@@ -67,7 +65,7 @@ test("installation requires the selected manager's committed lockfile", async (t
   assert.throws(() => api.installCommand(empty), /lockfile/);
 });
 
-async function installedPackage(root, directory, name, options = {}) {
+async function installedPackage(root: string, directory: string, name: string, options = {}) {
   const dir = path.join(root, directory);
   await mkdir(path.join(dir, "bin"), { recursive: true });
   await writeFile(path.join(dir, "package.json"), JSON.stringify({

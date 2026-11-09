@@ -1,3 +1,5 @@
+import type { ChildProcess } from "node:child_process";
+import type { BackendState, WorktreeState, Runtime, Layout } from "./types.mts";
 import fs from "node:fs/promises";
 import { openSync, closeSync } from "node:fs";
 
@@ -15,21 +17,21 @@ import {
   read,
   layout,
   stateFile,
-} from "./context.mjs";
-import { launchServices, stopChildren, serviceStatus, markServicesStopped } from "./services.mjs";
-import { safe, json } from "./files.mjs";
-import { alive, locked, available } from "./registry.mjs";
-import { state, checkConfig, childEnv, convexArgs } from "./config.mjs";
-import { packageBin } from "./dependencies.mjs";
+} from "./context.mts";
+import { launchServices, stopChildren, serviceStatus, markServicesStopped } from "./services.mts";
+import { safe, json } from "./files.mts";
+import { alive, locked, available } from "./registry.mts";
+import { state, checkConfig, childEnv, convexArgs } from "./config.mts";
+import { packageBin } from "./dependencies.mts";
 
 export async function run(
-  args,
-  s,
-  { bootstrap = false, input, timeout = 180000 } = {},
+  args: string[],
+  s: BackendState,
+  { bootstrap = false, input, timeout = 180000 }: { bootstrap?: boolean; input?: string; timeout?: number } = {},
 ) {
-  let failure;
+  let failure: (Error & { output?: string }) | undefined;
   try {
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const child = spawn(process.execPath, args, {
         cwd: backend,
         env: childEnv(s, bootstrap),
@@ -55,7 +57,7 @@ export async function run(
         clearTimeout(timer);
         if (code === 0) resolve();
         else {
-          const error = new Error(
+          const error: Error & { output?: string } = new Error(
             `Convex command failed (${code ?? "timeout/signal"}).`,
           );
           error.output = output;
@@ -78,7 +80,7 @@ export async function run(
   if (!stopped)
     throw new Error("Convex command exited but local ports did not close.");
   if (failure) {
-    const config = await read(
+    const config = await read<Layout>(
       path.join(root, "scripts/worktree.config.json"),
       {},
     );
@@ -94,15 +96,23 @@ export async function run(
   }
 }
 
-export async function ownedRunning(s) {
+export async function ownedRunning(s: WorktreeState | null) {
   if (!s) return false;
-  const runtime = await read(path.join(dir, "runtime.json"), null);
+  const runtime = await read<Runtime | null>(path.join(dir, "runtime.json"), null);
   if (!runtime || !alive(runtime.pid)) return false;
-  const command = execFileSync(
-    "ps",
-    ["-p", String(runtime.pid), "-o", "command="],
-    { encoding: "utf8" },
-  );
+  let command: string;
+  try {
+    command = execFileSync(
+      "ps",
+      ["-p", String(runtime.pid), "-o", "stat=,command="],
+      { encoding: "utf8" },
+    );
+  } catch (error) {
+    if (error.status === 1) return false; // Exited between the liveness and ownership checks.
+    throw error;
+  }
+  // A supervisor can exit before its parent reaps it. Never signal a zombie.
+  if (/^\s*Z/.test(command)) return false;
   if (!command.includes(script) || !command.includes(`--owner=${s.id}`)) {
     throw new Error(
       "Recorded PID belongs to another process; refusing to signal it.",
@@ -111,7 +121,7 @@ export async function ownedRunning(s) {
   return runtime;
 }
 
-export async function reserve(s) {
+export async function reserve(s: BackendState) {
   await locked(async (leases) => {
     for (const [p, v] of Object.entries(leases)) {
       if (
@@ -131,7 +141,7 @@ export async function reserve(s) {
   });
 }
 
-export async function serve(s, withFrontend = false) {
+export async function serve(s: WorktreeState, withFrontend = false) {
   const managed = s.mode !== "none";
   if (managed) await checkConfig(s, true);
   const profile = s.serviceProfile ? validateProfiles(layout, ["--profile", s.serviceProfile]) : null;
@@ -141,9 +151,9 @@ export async function serve(s, withFrontend = false) {
   const runtime = { pid: process.pid, id: s.id, ready: false };
   await safe(runtimeFile);
   await json(runtimeFile, runtime);
-  const children = [];
+  const children: ChildProcess[] = [];
   let stopping = false;
-  let markStopped;
+  let markStopped: (() => Promise<void>) | undefined;
   async function stop(code = 0) {
     if (stopping) return;
     stopping = true;
@@ -153,17 +163,17 @@ export async function serve(s, withFrontend = false) {
     await fs.rm(runtimeFile, { force: true });
     process.exit(code);
   }
-  const failure = (message) => { console.error(message); void stop(1); };
+  const failure = (message: string) => { console.error(message); void stop(1); };
   process.on("SIGTERM", () => void stop());
   process.on("SIGINT", () => void stop());
   try {
     if (managed) {
-      await new Promise((resolve, reject) => {
-        const child = spawn(process.execPath, backendArgs, { cwd: backend, env: childEnv(s), stdio: ["ignore", "pipe", "pipe"] });
+      await new Promise<void>((resolve, reject) => {
+        const child = spawn(process.execPath, backendArgs!, { cwd: backend, env: childEnv(s), stdio: ["ignore", "pipe", "pipe"] });
         children.push(child);
         let output = "";
         const timer = setTimeout(() => reject(new Error("Backend readiness timed out")), 120000);
-        const consume = (data) => {
+        const consume = (data: Buffer) => {
           process.stdout.write(data);
           output = (output + data).slice(-65536);
           if (output.includes("Convex functions ready")) { clearTimeout(timer); resolve(); }
@@ -175,8 +185,8 @@ export async function serve(s, withFrontend = false) {
     }
     markStopped = await launchServices(profile, s, children, failure, () => stopping);
     if (stopping) return;
-    if (withFrontend) {
-      const web = spawn(process.execPath, [frontendBin, "dev", "--port", String(s.ports.web)], { cwd: frontend, env: childEnv(s), stdio: "inherit" });
+    if (withFrontend && s.mode !== "none") {
+      const web = spawn(process.execPath, [frontendBin!, "dev", "--port", String(s.ports.web)], { cwd: frontend, env: childEnv(s), stdio: "inherit" });
       children.push(web);
       web.once("error", (error) => { if (!stopping) failure(error.message); });
       web.once("exit", (code) => { if (!stopping) failure(`Frontend exited (${code})`); });
@@ -186,7 +196,7 @@ export async function serve(s, withFrontend = false) {
   } catch (error) { failure(error.message); }
 }
 
-import { validateProfiles, runHooks } from "./hooks.mjs";
+import { validateProfiles, runHooks } from "./hooks.mts";
 
 export async function start(withFrontend = false) {
   const explicit = validateProfiles();
@@ -235,7 +245,7 @@ export async function start(withFrontend = false) {
       await stopOnly(s);
       throw new Error(failed?.error ?? "Supervisor exited; inspect .worktree/backend.log.");
     }
-    const runtime = await read(path.join(dir, "runtime.json"), null);
+    const runtime = await read<Runtime | null>(path.join(dir, "runtime.json"), null);
     if (runtime?.id === s.id && runtime.pid === child.pid && runtime.ready) {
       console.log(
         s.mode === "none" ? "Profile services ready." : `Backend ready at http://127.0.0.1:${s.ports.cloud}${withFrontend ? `; frontend http://localhost:${s.ports.web}` : ""}`,
@@ -250,7 +260,7 @@ export async function start(withFrontend = false) {
   );
 }
 
-export async function stopOnly(s) {
+export async function stopOnly(s: WorktreeState) {
   if (s.mode === "none" && !s.serviceProfile) return;
   const runtime = await ownedRunning(s);
   if (!runtime) return;

@@ -4,10 +4,12 @@ Keep implementation and all worktree tests under scripts/worktree/. Layout diffe
 
 Run node scripts/check.mjs. Node tests use built-ins and need no dependency install. The optional real-backend test runs in a consuming Convex app with examples/probe.ts installed; do not claim it ran in this standalone toolkit.
 
+Implement scripts and tests in TypeScript ES modules (`.mts`) using only erasable syntax and explicit type imports. Node 22.18+ runs these directly without a loader or build. Keep `install.mjs` and `scripts/check.mjs` as compatibility launchers only. Run `npm ci` and `npm run typecheck` for strict compiler verification; runtime checks must continue to work without installed dependencies.
+
 Keep manifest.json hashes current when changing exported files. The Node installer must refuse existing files and symlinked destination paths.
 
 Preserve anonymous backend isolation, explicit ports, ownership checks and safe Git freshness handling. Never force-reset Git, copy cloud credentials or kill processes by port/name.
 
-This repository uses its own backend-free adapter. Run `node scripts/worktree/cli.mjs setup` from a clean checkout before work, and teardown/cleanup when finished. No Convex backend or frontend should be created for this repository itself. The installer must export the separate application defaults, with Convex enabled.
+This repository uses its own backend-free adapter. Run `node scripts/worktree/cli.mts setup` from a clean checkout before work, and teardown/cleanup when finished. No Convex backend or frontend should be created for this repository itself. The installer must export the separate application defaults, with Convex enabled.
 
 Follow docs/pull-request-standard.md and the PR template. Include the owning ticket, required sections, actual agent/session identity and current evidence. The metadata workflow must execute trusted base code only. CI uses UbiCloud compute; verify actual runner identity before claiming an execution passed.

@@ -4,9 +4,9 @@ import path from "node:path";
 
 import { randomUUID } from "node:crypto";
 
-import { root } from "./context.mjs";
+import { root } from "./context.mts";
 
-export async function safe(file) {
+export async function safe(file: string) {
   // Refuse links in every existing component before writes or recursive cleanup.
   let current = root;
   for (const part of path.relative(root, file).split(path.sep)) {
@@ -20,7 +20,7 @@ export async function safe(file) {
   }
 }
 
-export async function json(file, value) {
+export async function json(file: string, value: unknown) {
   const temporary = `${file}.${randomUUID()}.tmp`;
   await fs.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, {
     mode: 0o600,
@@ -28,7 +28,7 @@ export async function json(file, value) {
   await fs.rename(temporary, file);
 }
 
-export async function upsert(file, values, remove = []) {
+export async function upsert(file: string, values: Record<string, string | number>, remove: string[] = []) {
   await safe(file);
   let content = await fs.readFile(file, "utf8").catch((e) => {
     if (e.code === "ENOENT") return "";
@@ -39,7 +39,7 @@ export async function upsert(file, values, remove = []) {
     .split("\n")
     .filter(
       (line) =>
-        !keys.has(line.match(/^\s*(?:export\s+)?([A-Z_0-9]+)\s*=/)?.[1]),
+        !keys.has(line.match(/^\s*(?:export\s+)?([A-Z_0-9]+)\s*=/)?.[1] ?? ""),
     )
     .join("\n")
     .trimEnd();

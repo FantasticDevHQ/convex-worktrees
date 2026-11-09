@@ -1,8 +1,8 @@
 {
   "files": {
-    "worktree-freshness.test.mjs": {
-      "path": "scripts/worktree/worktree-freshness.test.mjs",
-      "sha256": "a2578067d1fb833b9a792cd3cf902d129e29e79a3f4e837ea455205c19618721",
+    "worktree-freshness.test.mts": {
+      "path": "scripts/worktree/worktree-freshness.test.mts",
+      "sha256": "f7c3fd63ab12b0f671c1fcbbbe14e5fbad9287420f56c904d6c85ff1c17aadac",
       "adaptation": "Relocated under scripts/worktree; module/CLI references updated."
     },
     "worktree.config.json": {
@@ -10,95 +10,99 @@
       "sha256": "dc03f7d61091eecd3e75ba1c9bcb0b853840782f4cccc0be21d857557b8401bf",
       "source": "scripts/worktree.config.example.json"
     },
-    "worktree.integration.mjs": {
-      "path": "scripts/worktree/worktree.integration.mjs",
-      "sha256": "c261b446feb6717602e0fd67e8bdae9e3cab1504afa8351a1b33a08aba38885b",
+    "worktree.integration.mts": {
+      "path": "scripts/worktree/worktree.integration.mts",
+      "sha256": "cd58be017181043ddd8a47c784439fb6329ab4b4822372bfe2f9b149098f8210",
       "adaptation": "Generic optional isolation test using the example probe functions."
     },
-    "worktree.mjs": {
-      "path": "scripts/worktree.mjs",
-      "sha256": "1cd1832f9f82d4edc0308721b0223fd02dd7b54859e0defccc60a2997eabccef"
+    "worktree.mts": {
+      "path": "scripts/worktree.mts",
+      "sha256": "b61944be99115b7690462c49a0de4f6b0e1a7c48c9d0f710bf9d084983e16efc"
     },
-    "worktree.test.mjs": {
-      "path": "scripts/worktree/worktree.test.mjs",
-      "sha256": "40804447633faaf24e81772d778d4bd9cbec0038d4e6711726161c66e750823d",
+    "worktree.test.mts": {
+      "path": "scripts/worktree/worktree.test.mts",
+      "sha256": "e4b5fd2e28ea00448e8e514b7773a63202a0f078d580421a5553d16dcdad371e",
       "adaptation": "Relocated under scripts/worktree; module/CLI references updated."
     },
-    "cli.mjs": {
-      "path": "scripts/worktree/cli.mjs",
-      "sha256": "9677de05974e44e44eedfad444d52286e844dd2d05ad737a5e4ac242d29eff16"
+    "cli.mts": {
+      "path": "scripts/worktree/cli.mts",
+      "sha256": "c6e1dfd2d079b872a0cc6f924a534dbf5966073948778a1192fa5f84c5accc2d"
     },
-    "commands.mjs": {
-      "path": "scripts/worktree/commands.mjs",
-      "sha256": "74b90758b2f9dff75dbfff6f06ca16140224cd33630e8900227dde5d6bc56943"
+    "commands.mts": {
+      "path": "scripts/worktree/commands.mts",
+      "sha256": "519995283e57658145eb2a4bb3ef83527820f49be82fde38207f9200ed0a021e"
     },
-    "config.mjs": {
-      "path": "scripts/worktree/config.mjs",
-      "sha256": "717e7895569c9d0ea740de4d32c379c5ea39726223354f125d09e4180a00148c"
+    "config.mts": {
+      "path": "scripts/worktree/config.mts",
+      "sha256": "cc4dba649b5ea5ab980ebf4aaabd2d8f1e5087f2f394d7fb0262c1b282938d39"
     },
-    "context.mjs": {
-      "path": "scripts/worktree/context.mjs",
-      "sha256": "f988b4e799cf9b29b3af1e1d067e69a8461c96bb0266ebac71fee39c0fcac0e4"
+    "context.mts": {
+      "path": "scripts/worktree/context.mts",
+      "sha256": "ee36eeee74a4b8ea41f75df2794b21a2f129203f15cc5c995c67b1a9b7390871"
     },
-    "files.mjs": {
-      "path": "scripts/worktree/files.mjs",
-      "sha256": "0c51c88db0007a3c9c6a23af1414c9bc45eff2dcf9723b91753a862595a7228a"
+    "files.mts": {
+      "path": "scripts/worktree/files.mts",
+      "sha256": "a7b464cbe2efd71a85feb2dbdd5665df605c833d4a7aef3097c97763c4e99653"
     },
-    "freshness.mjs": {
-      "path": "scripts/worktree/freshness.mjs",
-      "sha256": "e45c37e447bed6ae9cea42f6eb2401a7332192970c322ecc3a1ab222f4a45f04"
+    "freshness.mts": {
+      "path": "scripts/worktree/freshness.mts",
+      "sha256": "9432fcce26a1edc60d8bd34c940ed24539bf5b61d5171f13be8a85e92261bf48"
     },
-    "lifecycle.mjs": {
-      "path": "scripts/worktree/lifecycle.mjs",
-      "sha256": "e2aaeb33cbd1050532b05716a94b9188e0b0f3f7030db1909f0ada2e427bcadf"
+    "lifecycle.mts": {
+      "path": "scripts/worktree/lifecycle.mts",
+      "sha256": "f5bd843e71371fe8d32c82845806d96c89061764555342893d169004aeec13d7"
     },
-    "processes.mjs": {
-      "path": "scripts/worktree/processes.mjs",
-      "sha256": "3f2e98952ae20bcb5344e990a09fcc3d0ac66d8d13415b15c9cf097098d4f35b"
+    "processes.mts": {
+      "path": "scripts/worktree/processes.mts",
+      "sha256": "5e43b161361b1570dd8325561614a5d0c6e9dbb9301001b4dd0cd9f5a96429da"
     },
-    "registry.mjs": {
-      "path": "scripts/worktree/registry.mjs",
-      "sha256": "cec767fc73c3a463f469c0ab8658139839054099dc0495387ce61f2a3025d26a"
+    "registry.mts": {
+      "path": "scripts/worktree/registry.mts",
+      "sha256": "8eefa3bc03d5908678fa6918f961fdfb88f2e9343bdf560f6fbb0e5f0573de27"
     },
-    "dependencies.mjs": {
-      "path": "scripts/worktree/dependencies.mjs",
-      "sha256": "0ec8ccddfde1e03682765048f2fab71a3c3c374390f7413f812db209da906c98"
+    "dependencies.mts": {
+      "path": "scripts/worktree/dependencies.mts",
+      "sha256": "9daadfcfb8f3676eff1b9d005848daede57a43aa8212e4d67a46f98eb27f66de"
     },
-    "dependencies.test.mjs": {
-      "path": "scripts/worktree/dependencies.test.mjs",
-      "sha256": "5612430798496d343275102c28d5af326bfdff8ea2eee1264d8b94995baf4101"
+    "dependencies.test.mts": {
+      "path": "scripts/worktree/dependencies.test.mts",
+      "sha256": "8275565c8dd9a699bd65a6bd0357c89a9a46982a701f614e0575ef8929112cca"
     },
-    "installer.mjs": {
-      "path": "scripts/worktree/installer.mjs",
-      "sha256": "ee1adc62d26369d30246d6e3b78caa2ca418aa727990ef87876b5b0f0c73d1c0"
+    "installer.mts": {
+      "path": "scripts/worktree/installer.mts",
+      "sha256": "06ae655d062297b0260e706149022cf5f3fe3a3d59032565bf537d0f0fe58ed0"
     },
-    "installer.test.mjs": {
-      "path": "scripts/worktree/installer.test.mjs",
-      "sha256": "91c443f53689cadea491677caf732e7b5e784372203b75cf318a5d3c084edabc"
+    "installer.test.mts": {
+      "path": "scripts/worktree/installer.test.mts",
+      "sha256": "d4b6df6f9669dcbeca1e6ebab667e908b719113e30b045f9d3077285b59eeedf"
     },
-    "backend-free.test.mjs": {
-      "path": "scripts/worktree/backend-free.test.mjs",
-      "sha256": "6448fdc18f5a4ebc48bb5f9f124acd807bc7be4898b80681aed029243f40499c"
+    "backend-free.test.mts": {
+      "path": "scripts/worktree/backend-free.test.mts",
+      "sha256": "40b18e7b8711443c0121ad697aceaab2725bf756c8ba735eeaae486447dfd22c"
     },
     "LICENSE": {
       "path": "scripts/worktree/LICENSE",
       "sha256": "bcb31233265fc469a3d06a09b5effc3c79262ab356dfca3648333af16a60a425"
     },
-    "hooks.mjs": {
-      "path": "scripts/worktree/hooks.mjs",
-      "sha256": "963b33df5921eda7d100418312e706ad60452ebddc7f452a25edfaa7768499df"
+    "hooks.mts": {
+      "path": "scripts/worktree/hooks.mts",
+      "sha256": "32d4c9e97681c7e9c4a99593f28c82ba94004542ce7e437dec856b350fa00d10"
     },
     "PROFILES.md": {
       "path": "scripts/worktree/PROFILES.md",
-      "sha256": "85c8adbe251e363d135b7acb9f1cf9fb3780623b08c2b2f98e1b60f84e49d798"
+      "sha256": "c7c2b0aac2930198aa288b6ce93748053f956c3b29d8a965dad58663d0f36582"
     },
-    "services.mjs": {
-      "path": "scripts/worktree/services.mjs",
-      "sha256": "dd25c62b88745da8169086f9620c790ff9b732993248ed2249e29772a5a2ed81"
+    "services.mts": {
+      "path": "scripts/worktree/services.mts",
+      "sha256": "32c3597031eb61d4ef28d0fc22c2dbaeb1e6c301e2e7275309a11be762b533e2"
     },
-    "services.test.mjs": {
-      "path": "scripts/worktree/services.test.mjs",
-      "sha256": "eb31ed9a6dc67a5ef1573bd05b067c5a51470ba6eda2b6d990b805af5a85bef0"
+    "services.test.mts": {
+      "path": "scripts/worktree/services.test.mts",
+      "sha256": "7e4ba8803605de7325ed19770f041efafcb434b52c029b3155f6be4ef4a5f091"
+    },
+    "types.mts": {
+      "path": "scripts/worktree/types.mts",
+      "sha256": "68a418bf6e972ddc8e61df3611a057e13a648f0fb185b834f9a34ff560b269d8"
     }
   },
   "formatVersion": 1

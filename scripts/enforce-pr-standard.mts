@@ -1,14 +1,16 @@
+// GitHub JSON responses are validated by the endpoint-specific consumers.
+export type GitHubApi = (method: string, path: string, data?: Record<string, unknown>) => Promise<any>;
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { validatePullRequest } from "./pr-standard.mjs";
+import { validatePullRequest } from "./pr-standard.mts";
 
 const marker = "<!-- pr-standard -->";
 
-export async function enforcePullRequestStandard({ api, number, runUrl }) {
+export async function enforcePullRequestStandard({ api, number, runUrl }: { api: GitHubApi; number: number; runUrl: string }) {
   // Read current metadata, including on reruns of an older event.
   const pr = await api("GET", `/pulls/${number}`);
   if (pr.state !== "open") return true;
-  const status = (state, description) =>
+  const status = (state: string, description: string) =>
     api("POST", `/statuses/${pr.head.sha}`, {
       state,
       context: "PR standard",
@@ -23,7 +25,7 @@ export async function enforcePullRequestStandard({ api, number, runUrl }) {
         "GET",
         `/pulls/${number}/files?per_page=100&page=${page}`,
       );
-      files.push(...batch.map((file) => file.filename));
+      files.push(...batch.map((file: { filename: string }) => file.filename));
       if (batch.length < 100) break;
       // GitHub exposes at most 3,000 changed files. Do not silently miss UI changes.
       if (page === 30)
@@ -39,7 +41,7 @@ export async function enforcePullRequestStandard({ api, number, runUrl }) {
         `/issues/${number}/comments?per_page=100&page=${page}`,
       );
       previous = comments.find(
-        (comment) =>
+        (comment: { user?: { login: string; type: string }; body?: string }) =>
           comment.user?.login === "github-actions[bot]" &&
           comment.user?.type === "Bot" &&
           comment.body?.startsWith(marker),
@@ -72,7 +74,7 @@ export async function enforcePullRequestStandard({ api, number, runUrl }) {
 
 async function main() {
   const event = JSON.parse(
-    await readFile(process.env.GITHUB_EVENT_PATH, "utf8"),
+    await readFile(process.env.GITHUB_EVENT_PATH!, "utf8"),
   );
   const number = Number(
     event.pull_request?.number ?? event.inputs?.pull_request_number,
@@ -80,8 +82,8 @@ async function main() {
   if (!Number.isSafeInteger(number) || number < 1)
     throw new Error("A positive PR number is required");
   const root = `${process.env.GITHUB_API_URL}/repos/${process.env.GITHUB_REPOSITORY}`;
-  const api = async (method, path, data) => {
-    const options = {
+  const api: GitHubApi = async (method, path, data) => {
+    const options: RequestInit = {
       method,
       headers: {
         authorization: `Bearer ${process.env.GITHUB_TOKEN}`,

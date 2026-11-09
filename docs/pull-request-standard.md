@@ -129,7 +129,7 @@ the workflow's manual PR-number input to revalidate existing PRs or retry an API
 failure. Test the validator and bot behavior without installing dependencies:
 
 ```sh
-node --test scripts/pr-standard.test.mjs scripts/enforce-pr-standard.test.mjs
+node --test scripts/pr-standard.test.mts scripts/enforce-pr-standard.test.mts
 ```
 
 The equivalent package script is `test:pr-standard`, invoked with your package
@@ -140,6 +140,12 @@ best-effort failure status and rethrow the original error. A second status API
 failure cannot replace that original error.
 
 ## CI compute
+
+The `Check` workflow runs the Node 22.18 and 24 suites as separate matrix jobs.
+Its stable `test` job succeeds only when the entire matrix succeeds, then
+`Repository quality gates` requires that result. Keep the `test` check name
+stable because branch protection requires that exact context. Matrix display
+names such as `test (24)` do not satisfy a requirement for `test`.
 
 The metadata job uses `ubicloud-standard-2-ubuntu-2404`, the default Linux
 UbiCloud runner. GitHub Actions schedules the workflow; repository Actions and

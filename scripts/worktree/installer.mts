@@ -1,8 +1,9 @@
+import type { Manifest } from "./types.mts";
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 
-function rejectSymlinks(root, relative) {
+function rejectSymlinks(root: string, relative: string) {
   let current = root;
   for (const part of relative.split("/")) {
     current = path.join(current, part);
@@ -17,13 +18,13 @@ function rejectSymlinks(root, relative) {
   }
 }
 
-export function installToolkit(sourceDirectory, targetDirectory) {
+export function installToolkit(sourceDirectory: string, targetDirectory: string) {
   const source = fs.realpathSync(sourceDirectory);
   const target = fs.realpathSync(targetDirectory);
   if (!fs.statSync(target).isDirectory())
     throw new Error("Target must be an existing directory.");
   rejectSymlinks(source, "manifest.json");
-  const manifest = JSON.parse(fs.readFileSync(path.join(source, "manifest.json"), "utf8"));
+  const manifest: Manifest = JSON.parse(fs.readFileSync(path.join(source, "manifest.json"), "utf8"));
   if (!manifest.files || typeof manifest.files !== "object" || Array.isArray(manifest.files))
     throw new Error("Invalid manifest files.");
   const pending = [];

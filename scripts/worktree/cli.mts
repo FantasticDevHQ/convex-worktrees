@@ -1,12 +1,13 @@
 #!/usr/bin/env node
+import type { Layout } from "./types.mts";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { root, script, read } from "./context.mjs";
-import { refreshCheckout } from "./freshness.mjs";
-import { main } from "./commands.mjs";
-import { projectLock } from "./registry.mjs";
-import { installDependencies } from "./dependencies.mjs";
-import { validateProfiles } from "./hooks.mjs";
+import { root, script, read } from "./context.mts";
+import { refreshCheckout } from "./freshness.mts";
+import { main } from "./commands.mts";
+import { projectLock } from "./registry.mts";
+import { installDependencies } from "./dependencies.mts";
+import { validateProfiles } from "./hooks.mts";
 try {
   if (["setup", "start"].includes(process.argv[2])) validateProfiles();
   const targetIndex = process.argv.indexOf("--path");
@@ -37,7 +38,7 @@ try {
       const profileIndex = process.argv.indexOf("--profile");
       const profileArgs = profileIndex < 0 ? [] : ["--profile", process.argv[profileIndex + 1]];
       if (!prepare) {
-        const targetLayout = await read(path.join(target, "scripts/worktree.config.json"), {});
+        const targetLayout = await read<Layout>(path.join(target, "scripts/worktree.config.json"), {});
         installDependencies(target, { allowEmpty: targetLayout.convex === false });
       }
       execFileSync(
