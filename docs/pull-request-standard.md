@@ -141,6 +141,12 @@ failure cannot replace that original error.
 
 ## CI compute
 
+The `Check` workflow runs the Node 22.18 and 24 suites as separate matrix jobs.
+Its stable `test` job succeeds only when the entire matrix succeeds, then
+`Repository quality gates` requires that result. Keep the `test` check name
+stable because branch protection requires that exact context. Matrix display
+names such as `test (24)` do not satisfy a requirement for `test`.
+
 The metadata job uses `ubicloud-standard-2-ubuntu-2404`, the default Linux
 UbiCloud runner. GitHub Actions schedules the workflow; repository Actions and
 the UbiCloud integration's repository access must both remain enabled. A queued

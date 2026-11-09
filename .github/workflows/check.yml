@@ -7,7 +7,8 @@ on:
 permissions:
   contents: read
 jobs:
-  test:
+  runtime:
+    name: test (${{ matrix.node }})
     runs-on: ubicloud-standard-2-ubuntu-2404
     strategy:
       matrix:
@@ -46,6 +47,19 @@ jobs:
         run: |
           node scripts/worktree/cli.mts teardown
           node scripts/worktree/cli.mts cleanup --yes
+  # Branch protection requires the stable "test" context, independent of the matrix.
+  test:
+    needs: runtime
+    if: always()
+    runs-on: ubicloud-standard-2-ubuntu-2404
+    timeout-minutes: 5
+    steps:
+      - name: Require every Node version to pass
+        env:
+          RUNTIME_RESULT: ${{ needs.runtime.result }}
+        run: |
+          echo "Node matrix result: $RUNTIME_RESULT"
+          test "$RUNTIME_RESULT" = success
   quality:
     name: Repository quality gates
     needs: test
