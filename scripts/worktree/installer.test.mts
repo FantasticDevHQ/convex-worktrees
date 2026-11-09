@@ -1,3 +1,5 @@
+import type { Manifest } from "./types.mts";
+import type { TestContext } from "node:test";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, readdir } from "node:fs/promises";
@@ -5,23 +7,20 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 
-const api = await import("./installer.mjs").catch((error) => {
-  if (error.code !== "ERR_MODULE_NOT_FOUND") throw error;
-  return {};
-});
-const hash = (data) => createHash("sha256").update(data).digest("hex");
+import * as api from "./installer.mts";
+const hash = (data: string) => createHash("sha256").update(data).digest("hex");
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const base = await mkdtemp(path.join(tmpdir(), "worktree-install-"));
   t.after(() => rm(base, { recursive: true, force: true }));
   const source = path.join(base, "kit"), target = path.join(base, "app");
   await mkdir(path.join(source, "scripts/worktree"), { recursive: true });
   await mkdir(target);
-  const manifest = { files: {
-    "entry.mjs": { path: "scripts/worktree/entry.mjs", sha256: hash("entry") },
+  const manifest: Manifest = { files: {
+    "entry.mts": { path: "scripts/worktree/entry.mts", sha256: hash("entry") },
     "config.json": { path: "scripts/worktree.config.json", sha256: hash("config") },
   } };
-  await writeFile(path.join(source, "scripts/worktree/entry.mjs"), "entry");
+  await writeFile(path.join(source, "scripts/worktree/entry.mts"), "entry");
   await writeFile(path.join(source, "scripts/worktree.config.json"), "config");
   const save = () => writeFile(path.join(source, "manifest.json"), JSON.stringify(manifest));
   await save();
@@ -33,7 +32,7 @@ test("Node installer restores verified files into an existing app without alteri
   const f = await fixture(t);
   await writeFile(path.join(f.target, "package.json"), "keep");
   assert.equal(api.installToolkit(f.source, f.target), 2);
-  assert.equal(await readFile(path.join(f.target, "scripts/worktree/entry.mjs"), "utf8"), "entry");
+  assert.equal(await readFile(path.join(f.target, "scripts/worktree/entry.mts"), "utf8"), "entry");
   assert.equal(await readFile(path.join(f.target, "package.json"), "utf8"), "keep");
 });
 
@@ -44,7 +43,7 @@ test("installer preflights every destination before writing anything", async (t)
   await writeFile(path.join(f.target, "scripts/worktree.config.json"), "keep");
   assert.throws(() => api.installToolkit(f.source, f.target), /overwrite/i);
   assert.equal(await readFile(path.join(f.target, "scripts/worktree.config.json"), "utf8"), "keep");
-  await assert.rejects(readFile(path.join(f.target, "scripts/worktree/entry.mjs")), { code: "ENOENT" });
+  await assert.rejects(readFile(path.join(f.target, "scripts/worktree/entry.mts")), { code: "ENOENT" });
 });
 
 test("tampered source hashes stop installation before any files are copied", async (t) => {
@@ -59,7 +58,7 @@ test("manifest paths cannot escape the destination", async (t) => {
   assert.equal(typeof api.installToolkit, "function");
   const f = await fixture(t);
   for (const invalid of ["../escape", "/tmp/escape", "scripts/../escape", "scripts\\..\\escape"]) {
-    f.manifest.files["entry.mjs"].path = invalid;
+    f.manifest.files["entry.mts"].path = invalid;
     await f.save();
     assert.throws(() => api.installToolkit(f.source, f.target), /invalid.*path|invalid.*destination/i);
     assert.deepEqual(await readdir(f.target), []);
@@ -79,7 +78,7 @@ test("dangling destination symlinks are refused", async (t) => {
   assert.equal(typeof api.installToolkit, "function");
   const f = await fixture(t);
   await mkdir(path.join(f.target, "scripts/worktree"), { recursive: true });
-  await symlink(path.join(f.base, "missing"), path.join(f.target, "scripts/worktree/entry.mjs"));
+  await symlink(path.join(f.base, "missing"), path.join(f.target, "scripts/worktree/entry.mts"));
   assert.throws(() => api.installToolkit(f.source, f.target), /symlink|overwrite/i);
 });
 

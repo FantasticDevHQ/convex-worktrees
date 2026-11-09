@@ -1,3 +1,4 @@
+import type { BackendState, BackendConfig, Layout } from "./types.mts";
 import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
 
@@ -14,23 +15,23 @@ import {
   configFile,
   read,
   layout,
-} from "./context.mjs";
-import { safe, json, upsert } from "./files.mjs";
-import { locked, projectLock, available } from "./registry.mjs";
+} from "./context.mts";
+import { safe, json, upsert } from "./files.mts";
+import { locked, projectLock, available } from "./registry.mts";
 import {
   state,
   checkConfig,
   cli,
   convexArgs,
   assertBootstrapIsolation,
-} from "./config.mjs";
-import { serviceStatus } from "./services.mjs";
-import { run, ownedRunning, stopOnly } from "./processes.mjs";
-import { refreshCheckout } from "./freshness.mjs";
+} from "./config.mts";
+import { serviceStatus } from "./services.mts";
+import { run, ownedRunning, stopOnly } from "./processes.mts";
+import { refreshCheckout } from "./freshness.mts";
 
-import { validateProfiles, runHooks } from "./hooks.mjs";
+import { validateProfiles, runHooks } from "./hooks.mts";
 
-export async function setup(prepareOnly) {
+export async function setup(prepareOnly: boolean) {
   const profile = validateProfiles();
   await refreshCheckout(root);
   if (layout.convex === false) {
@@ -53,18 +54,18 @@ export async function setup(prepareOnly) {
   await safe(frontendEnv);
   await fs.mkdir(dir, { recursive: true, mode: 0o700 });
   await fs.mkdir(path.join(dir, "home"), { recursive: true, mode: 0o700 });
-  let s = await read(stateFile, null);
+  let s = await read<BackendState | null>(stateFile, null);
   if (!s && existsSync(configFile))
     throw new Error(
       "Refusing unmanaged local backend state. Use a fresh checkout.",
     );
   if (s) {
-    s = await state();
+    s = await state() as BackendState;
     await checkConfig(s);
   }
   // Serialize both per-checkout preparation and cross-repository allocations.
   s = await locked(async (leases) => {
-    const existing = await read(stateFile, null);
+    const existing = await read<BackendState | null>(stateFile, null);
     if (existing) s = existing;
     if (await ownedRunning(s))
       throw new Error("Backend already running. Stop it before setup.");
@@ -135,7 +136,7 @@ export async function setup(prepareOnly) {
     const backendEnv = path.join(dir, "backend.env");
     await safe(backendEnv);
     if (!existsSync(backendEnv)) {
-      const config = await read(
+      const config = await read<Layout>(
         path.join(root, "scripts/worktree.config.json"),
         {},
       );
@@ -148,37 +149,39 @@ export async function setup(prepareOnly) {
     }
     return s;
   });
-  await runHooks(profile, "afterPrepare", s);
+  if (!s) throw new Error("Worktree allocation did not return state.");
+  const prepared = s;
+  await runHooks(profile, "afterPrepare", prepared);
   if (!prepareOnly)
     await projectLock(async () => {
       // First run uses the documented non-TTY anonymous flow, which generates a unique
       // name rather than the agent-mode constant that can select legacy HOME state.
-      if (!s.deployment) {
+      if (!prepared.deployment) {
         await assertBootstrapIsolation(backend);
-        await run(convexArgs(s, ["--once"]), s, {
+        await run(convexArgs(prepared, ["--once"]), prepared, {
           bootstrap: true,
         });
-        const config = await read(configFile, null);
+        const config = await read<BackendConfig | null>(configFile, null);
         if (
           !config?.deploymentName?.startsWith("anonymous-") ||
-          config.ports?.cloud !== s.ports.cloud ||
-          config.ports?.site !== s.ports.site
+          config.ports?.cloud !== prepared.ports.cloud ||
+          config.ports?.site !== prepared.ports.site
         ) {
           throw new Error(
             "Bootstrap did not create an isolated anonymous backend at the requested ports.",
           );
         }
-        s.deployment = config.deploymentName;
-        await json(stateFile, s);
+        prepared.deployment = config.deploymentName;
+        await json(stateFile, prepared);
         await upsert(path.join(dir, "convex.env"), {
-          CONVEX_DEPLOYMENT: `anonymous:${s.deployment}`,
+          CONVEX_DEPLOYMENT: `anonymous:${prepared.deployment}`,
         });
         await upsert(frontendEnv, {
-          CONVEX_DEPLOYMENT: `anonymous:${s.deployment}`,
+          CONVEX_DEPLOYMENT: `anonymous:${prepared.deployment}`,
         });
       }
-      await checkConfig(s, true);
-      await runHooks(profile, "beforeImport", s);
+      await checkConfig(prepared, true);
+      await runHooks(profile, "beforeImport", prepared);
       await safe(path.join(dir, "backend.env"));
       await run(
         [
@@ -190,14 +193,14 @@ export async function setup(prepareOnly) {
           "--from-file",
           path.join(dir, "backend.env"),
         ],
-        s,
+        prepared,
       );
-      await run(convexArgs(s, ["--once"]), s);
-      await checkConfig(s, true);
-      await runHooks(profile, "afterPush", s);
+      await run(convexArgs(prepared, ["--once"]), prepared);
+      await checkConfig(prepared, true);
+      await runHooks(profile, "afterPush", prepared);
     }, "shared-convex-cache");
   console.log(
-    `Worktree ${prepareOnly ? "prepared" : "ready"}: web=${s.ports.web} convex=${s.ports.cloud} site=${s.ports.site}`,
+    `Worktree ${prepareOnly ? "prepared" : "ready"}: web=${prepared.ports.web} convex=${prepared.ports.cloud} site=${prepared.ports.site}`,
   );
 }
 

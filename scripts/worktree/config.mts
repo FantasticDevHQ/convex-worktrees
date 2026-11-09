@@ -1,14 +1,15 @@
+import type { WorktreeState, BackendState, BackendConfig } from "./types.mts";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
-import { root, backend, dir, stateFile, configFile, read, layout } from "./context.mjs";
-import { safe, json } from "./files.mjs";
-import { packageBin } from "./dependencies.mjs";
+import { root, backend, dir, stateFile, configFile, read, layout } from "./context.mts";
+import { safe, json } from "./files.mts";
+import { packageBin } from "./dependencies.mts";
 
 export async function state() {
   await safe(stateFile);
-  const s = await read(stateFile, null);
+  const s = await read<WorktreeState | null>(stateFile, null);
   if (!s || s.root !== root || s.version !== 1 || !s.id)
     throw new Error("Run worktree:setup in this checkout first.");
   if ((layout.convex === false) !== (s.mode === "none") ||
@@ -17,9 +18,9 @@ export async function state() {
   return s;
 }
 
-export async function checkConfig(s, required = false) {
+export async function checkConfig(s: BackendState, required = false) {
   await safe(configFile);
-  const config = await read(configFile, null);
+  const config = await read<BackendConfig | null>(configFile, null);
   if (!config && !required) return;
   if (
     config &&
@@ -46,7 +47,7 @@ export async function checkConfig(s, required = false) {
   }
 }
 
-export function childEnv(s, bootstrap = false) {
+export function childEnv(s: BackendState, bootstrap = false) {
   const env = { ...process.env };
   for (const key of Object.keys(env)) {
     if (key.startsWith("CONVEX_") || key.startsWith("NEXT_PUBLIC_CONVEX_"))
@@ -65,7 +66,7 @@ export function cli() {
   return packageBin("convex", "convex", [backend, root]);
 }
 
-export function convexArgs(s, extra = []) {
+export function convexArgs(s: BackendState, extra: string[] = []) {
   return [
     cli(),
     "dev",
@@ -80,7 +81,7 @@ export function convexArgs(s, extra = []) {
 }
 
 export async function assertBootstrapIsolation(
-  projectRoot,
+  projectRoot: string,
   userHome = homedir(),
 ) {
   const name = `anonymous-${path.basename(projectRoot)}`;

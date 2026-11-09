@@ -3,13 +3,13 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 
-const lockfiles = {
+const lockfiles: Record<string, string[]> = {
   bun: ["bun.lock", "bun.lockb"],
   pnpm: ["pnpm-lock.yaml"],
   npm: ["package-lock.json", "npm-shrinkwrap.json"],
 };
 
-export function packageManager(root) {
+export function packageManager(root: string) {
   const manifestPath = path.join(root, "package.json");
   const manifest = existsSync(manifestPath)
     ? JSON.parse(readFileSync(manifestPath, "utf8"))
@@ -28,7 +28,7 @@ export function packageManager(root) {
   return detected[0] || "npm";
 }
 
-export function installCommand(root) {
+export function installCommand(root: string) {
   const manager = packageManager(root);
   if (!lockfiles[manager].some((file) => existsSync(path.join(root, file))))
     throw new Error(`Commit a ${manager} lockfile before setup: ${lockfiles[manager].join(" or ")}.`);
@@ -37,7 +37,7 @@ export function installCommand(root) {
     : [manager, "install", "--frozen-lockfile"];
 }
 
-export function installDependencies(root, { allowEmpty = false } = {}) {
+export function installDependencies(root: string, { allowEmpty = false } = {}) {
   if (allowEmpty) {
     const file = path.join(root, "package.json");
     const manifest = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
@@ -58,8 +58,8 @@ export function installDependencies(root, { allowEmpty = false } = {}) {
   }
 }
 
-export function packageBin(name, executable, directories) {
-  const root = path.resolve(directories.at(-1));
+export function packageBin(name: string, executable: string, directories: string[]) {
+  const root = path.resolve(directories.at(-1)!);
   for (const directory of directories) {
     const lookup = createRequire(path.resolve(directory, "package.json"));
     const modules = lookup.resolve.paths(name)?.find((candidate) => {

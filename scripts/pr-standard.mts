@@ -2,7 +2,7 @@ const sections = ["Summary", "What", "Why", "Evidence", "Agent"];
 const titlePattern =
   /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9][a-z0-9./-]*\))?!?: [A-Z][A-Z0-9]+-[1-9]\d* \S.*$/;
 
-function meaningful(text) {
+function meaningful(text: string) {
   return text.split("\n").some((line) => {
     const value = line
       .replace(/^\s*[-*+]\s*(\[[ xX]\])?/, "")
@@ -18,10 +18,10 @@ function meaningful(text) {
   });
 }
 
-function parseSections(body) {
-  const found = [];
-  let current;
-  let fence;
+function parseSections(body: string) {
+  const found: { name: string; text: string }[] = [];
+  let current: { name: string; text: string } | undefined;
+  let fence: string | undefined;
   for (const line of body.split("\n")) {
     const marker = line.match(/^\s{0,3}(`{3,}|~{3,})/);
     const heading = !fence && line.match(/^#{1,2}\s+(.+?)\s*#*\s*$/);
@@ -45,7 +45,7 @@ function parseSections(body) {
   return found;
 }
 
-function hasProof(text) {
+function hasProof(text: string) {
   const links = text.match(/https:\/\/[^\s<>\])]+/g) ?? [];
   const accessible = links.some((link) => {
     try {
@@ -69,8 +69,8 @@ function hasProof(text) {
   return accessible || output;
 }
 
-function outsideFences(text) {
-  let fence;
+function outsideFences(text: string) {
+  let fence: string | undefined;
   return text
     .split("\n")
     .filter((line) => {
@@ -93,7 +93,7 @@ function outsideFences(text) {
     .join("\n");
 }
 
-function agentErrors(text) {
+function agentErrors(text: string) {
   text = outsideFences(text);
   const errors = [];
   for (const field of ["Agent", "Session/thread ID"]) {
@@ -108,7 +108,7 @@ function agentErrors(text) {
   return errors;
 }
 
-function linkageErrors(text, title) {
+function linkageErrors(text: string, title: string) {
   const ticket = title.match(/: ([A-Z][A-Z0-9]+-[1-9]\d*) /)?.[1];
   if (!ticket) return [];
   const declaration =
@@ -119,7 +119,7 @@ function linkageErrors(text, title) {
       const target = line.match(declaration)?.[1]?.replace(/^<|[>.,;]$/g, "");
       if (target === ticket) return true;
       try {
-        const url = new URL(target);
+        const url = new URL(target ?? "");
         return (
           url.protocol === "https:" &&
           url.hostname === "linear.app" &&
@@ -138,7 +138,7 @@ function linkageErrors(text, title) {
       ];
 }
 
-function uiEvidenceErrors(text, files) {
+function uiEvidenceErrors(text: string, files: string[]) {
   text = outsideFences(text);
   const errors = [];
   const declared = text.match(
@@ -162,7 +162,7 @@ function uiEvidenceErrors(text, files) {
   const video = text.match(
     /^\s*(?:[-*]\s*)?Video:[^\n]*?(https:\/\/[^\s)<>]+)/im,
   )?.[1];
-  const uploaded = (url) =>
+  const uploaded = (url: string | undefined) =>
     !!url &&
     /^https:\/\/(github\.com\/user-attachments\/assets\/|(?:user-images|private-user-images)\.githubusercontent\.com\/)[^\s]+$/.test(
       url,
@@ -174,7 +174,7 @@ function uiEvidenceErrors(text, files) {
   return errors;
 }
 
-export function validatePullRequest({ title = "", body = "" }, files = []) {
+export function validatePullRequest({ title = "", body = "" }: { title?: string; body?: string | null }, files: string[] = []) {
   const errors = [];
   if (!titlePattern.test(title.trim()))
     errors.push(

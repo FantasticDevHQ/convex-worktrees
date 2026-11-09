@@ -1,16 +1,16 @@
 import path from "node:path";
 import { existsSync, readFileSync } from "node:fs";
-import { projectLock } from "./registry.mjs";
+import { projectLock } from "./registry.mts";
 import { execFileSync } from "node:child_process";
 
-function gitAt(root) {
-  return (...args) => execFileSync("git", ["-C", root, ...args], {
+function gitAt(root: string) {
+  return (...args: string[]) => execFileSync("git", ["-C", root, ...args], {
     encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 }
 
 // Only fast-forward: user commits, edits and conflicts always remain intact.
-export async function refreshCheckout(root, { refreshCurrent = true } = {}) {
+export async function refreshCheckout(root: string, { refreshCurrent = true } = {}) {
   const git = gitAt(root);
   let common;
   try {
@@ -24,7 +24,7 @@ export async function refreshCheckout(root, { refreshCurrent = true } = {}) {
   );
 }
 
-function selectedBranch(root, git) {
+function selectedBranch(root: string, git: (...args: string[]) => string) {
   const configPath = path.join(root, "scripts/worktree.config.json");
   const config = existsSync(configPath) ? JSON.parse(readFileSync(configPath, "utf8")) : {};
   let branch = config.baseBranch;
@@ -49,7 +49,7 @@ function selectedBranch(root, git) {
   return branch;
 }
 
-function refreshUnlocked(root, refreshCurrent) {
+function refreshUnlocked(root: string, refreshCurrent: boolean) {
   const git = gitAt(root);
   const branch = selectedBranch(root, git);
   const reference = `origin/${branch}`;
@@ -65,7 +65,7 @@ function refreshUnlocked(root, refreshCurrent) {
   if (git("status", "--porcelain"))
     throw new Error("Checkout has uncommitted/dirty files. Commit or move your changes before setup; no files were discarded.");
   const base = git("rev-parse", remoteRef);
-  const ancestor = (a, b) => {
+  const ancestor = (a: string, b: string) => {
     try { git("merge-base", "--is-ancestor", a, b); return true; }
     catch { return false; }
   };

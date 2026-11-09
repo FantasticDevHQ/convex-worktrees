@@ -1,3 +1,4 @@
+import type { TestContext } from "node:test";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
@@ -5,13 +6,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-const script = fileURLToPath(new URL("./cli.mjs", import.meta.url));
-function git(root, ...args) {
+const script = fileURLToPath(new URL("./cli.mts", import.meta.url));
+function git(root: string, ...args: string[]) {
   return execFileSync("git", ["-C", root, ...args], {
     encoding: "utf8",
   }).trim();
 }
-async function fixture(t, branch = "main") {
+async function fixture(t: TestContext, branch = "main") {
   const base = await mkdtemp(path.join(tmpdir(), "freshness-"));
   t.after(() => rm(base, { recursive: true, force: true }));
   const origin = path.join(base, "origin"),
@@ -28,7 +29,7 @@ async function fixture(t, branch = "main") {
     base,
     origin,
     root,
-    run: (...args) =>
+    run: (...args: string[]) =>
       spawnSync(process.execPath, [script, "setup", ...args, "--prepare-only"], {
         cwd: root,
         env: {

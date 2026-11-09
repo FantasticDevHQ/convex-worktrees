@@ -1,19 +1,20 @@
+import type { Layout, SelectedProfile, Phase, WorktreeState } from "./types.mts";
 import { spawn } from "node:child_process";
 import path from "node:path";
-import { root, backend, frontend, dir, layout } from "./context.mjs";
-import { childEnv } from "./config.mjs";
+import { root, backend, frontend, dir, layout } from "./context.mts";
+import { childEnv } from "./config.mts";
 
-const phases = ["afterPrepare", "beforeImport", "afterPush", "beforeStart"];
-const object = (value) => value && typeof value === "object" && !Array.isArray(value);
-export function validateProfiles(config = layout, argv = process.argv.slice(3)) {
-  const fail = (message) => { throw new Error(`Profile configuration: ${message}`); };
+const phases: string[] = ["afterPrepare", "beforeImport", "afterPush", "beforeStart"];
+const object = (value: unknown): value is Record<string, any> => !!value && typeof value === "object" && !Array.isArray(value);
+export function validateProfiles(config: Layout = layout, argv = process.argv.slice(3)): SelectedProfile | null {
+  const fail = (message: string): never => { throw new Error(`Profile configuration: ${message}`); };
   const profiles = config.profiles ?? {};
   if (!object(profiles)) fail("profiles must be an object");
   for (const [name, profile] of Object.entries(profiles)) {
     if (!object(profile) || Object.keys(profile).some((key) => !["hooks", "services"].includes(key))) fail(`invalid profile ${name}`);
     const services = profile.services ?? {};
     if (!object(services)) fail(`invalid services in ${name}`);
-    const command = (args) => Array.isArray(args) && args.length && args.every((a) => typeof a === "string" && !a.includes("\0")) && args[0].trim();
+    const command = (args: unknown) => Array.isArray(args) && args.length && args.every((a) => typeof a === "string" && !a.includes("\0")) && args[0].trim();
     for (const [service, value] of Object.entries(services)) {
       if (!service.trim() || !object(value) || Object.keys(value).some((key) => !["command", "readiness"].includes(key)) || !command(value.command) ||
           !object(value.readiness) || Object.keys(value.readiness).some((key) => !["command", "timeoutMs"].includes(key)) || !command(value.readiness.command) ||
@@ -41,21 +42,21 @@ export function validateProfiles(config = layout, argv = process.argv.slice(3)) 
   return { name, hooks: profiles[name].hooks ?? {}, services: profiles[name].services ?? {} };
 }
 
-export function extensionEnv(profile, phase, s) {
+export function extensionEnv(profile: SelectedProfile, phase: Phase | "service", s: WorktreeState) {
   const context = { version: 1, profile: profile.name, phase, id: s.id, root, backend, frontend,
     stateDirectory: dir, environmentFile: path.join(dir, "backend.env"), ports: s.ports ?? {} };
-  return { ...(s.ports ? childEnv(s) : process.env), WORKTREE_CONTEXT: JSON.stringify(context) };
+  return { ...(s.mode !== "none" ? childEnv(s) : process.env), WORKTREE_CONTEXT: JSON.stringify(context) };
 }
 
-export async function runHooks(profile, phase, s) {
+export async function runHooks(profile: SelectedProfile | null, phase: Phase, s: WorktreeState) {
   for (const hook of profile?.hooks[phase] ?? []) {
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         const child = spawn(hook.command[0], hook.command.slice(1), { cwd: root, shell: false,
-          env: extensionEnv(profile, phase, s), stdio: "inherit" });
-        let reason;
-        let escalation;
-        const interrupt = (message) => {
+          env: extensionEnv(profile!, phase, s), stdio: "inherit" });
+        let reason: string | undefined;
+        let escalation: NodeJS.Timeout | undefined;
+        const interrupt = (message: string) => {
           reason = message;
           child.kill("SIGTERM");
           escalation ??= setTimeout(() => child.kill("SIGKILL"), 2000);
@@ -72,6 +73,6 @@ export async function runHooks(profile, phase, s) {
           else reject(new Error(reason ?? `exit ${code ?? signal}`));
         });
       });
-    } catch (error) { throw new Error(`Profile ${profile.name} hook ${phase}/${hook.name} failed: ${error.message}`); }
+    } catch (error) { throw new Error(`Profile ${profile!.name} hook ${phase}/${hook.name} failed: ${error.message}`); }
   }
 }

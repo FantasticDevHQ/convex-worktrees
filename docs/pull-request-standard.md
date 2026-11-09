@@ -129,7 +129,7 @@ the workflow's manual PR-number input to revalidate existing PRs or retry an API
 failure. Test the validator and bot behavior without installing dependencies:
 
 ```sh
-node --test scripts/pr-standard.test.mjs scripts/enforce-pr-standard.test.mjs
+node --test scripts/pr-standard.test.mts scripts/enforce-pr-standard.test.mts
 ```
 
 The equivalent package script is `test:pr-standard`, invoked with your package

@@ -1,3 +1,4 @@
+import type { TestContext } from "node:test";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -15,13 +16,13 @@ import { spawn } from "node:child_process";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 
-const script = fileURLToPath(new URL("./cli.mjs", import.meta.url));
-async function fixture(t) {
+const script = fileURLToPath(new URL("./cli.mts", import.meta.url));
+async function fixture(t: TestContext) {
   const dir = await realpath(await mkdtemp(join(tmpdir(), "worktree-test-")));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const registry = join(dir, "registry");
-  async function run(root, ...args) {
-    return await new Promise((resolve) => {
+  async function run(root: string, ...args: string[]) {
+    return await new Promise<{ code: number | null; output: string }>((resolve) => {
       const child = spawn(process.execPath, [script, ...args], {
         cwd: root,
         env: { ...process.env, WORKTREE_REGISTRY_DIR: registry },
@@ -32,7 +33,7 @@ async function fixture(t) {
       child.on("exit", (code) => resolve({ code, output }));
     });
   }
-  async function root(name) {
+  async function root(name: string) {
     const path = join(dir, name);
     await mkdir(path);
     await writeFile(join(path, "convex.json"), "{}");
@@ -91,7 +92,7 @@ test("a busy reserved port fails without reallocating or stopping its owner", as
     await readFile(join(a, ".worktree/local.json"), "utf8"),
   );
   const server = net.createServer();
-  await new Promise((resolve) =>
+  await new Promise<void>((resolve) =>
     server.listen(state.ports.cloud, "127.0.0.1", resolve),
   );
   t.after(() => new Promise((resolve) => server.close(resolve)));
@@ -228,7 +229,7 @@ test("bootstrap rejects matching legacy HOME state before starting Convex", asyn
     "home/.convex/anonymous-convex-backend-state/anonymous-a",
   );
   await mkdir(legacy, { recursive: true });
-  const lifecycleApi = await import("./config.mjs");
+  const lifecycleApi = await import("./config.mts");
   assert.equal(typeof lifecycleApi.assertBootstrapIsolation, "function");
   await assert.rejects(
     lifecycleApi.assertBootstrapIsolation(a, join(f.dir, "home")),
@@ -277,7 +278,7 @@ test("interrupted bootstrap refuses a different deployment even on its reserved 
   assert.match(result.output, /foreign/);
 });
 
-async function managedBackend(f, root) {
+async function managedBackend(f: Awaited<ReturnType<typeof fixture>>, root: string) {
   assert.equal((await f.run(root, "setup", "--prepare-only")).code, 0);
   const s = JSON.parse(await readFile(join(root, ".worktree/local.json"), "utf8"));
   await mkdir(join(root, ".convex/local/default"), { recursive: true });
@@ -320,8 +321,8 @@ test("profile-selection, hook-order, literal-argv, worktree-context and setup-lo
   const roots = [await f.root("profile-a"), await f.root("profile-b")];
   for (const root of roots) {
     await mkdir(join(root, "scripts"));
-    await writeFile(join(root, "scripts/unlisted.mjs"), 'throw new Error("must not run")');
-    const hook = (name) => ({ name, command: [process.execPath, "-e", `const fs=require('node:fs'); const c=JSON.parse(process.env.WORKTREE_CONTEXT); fs.appendFileSync('events', JSON.stringify({name:${JSON.stringify(name)},c,arg:process.argv[1]})+'\\n');`, "; $(echo unsafe) &"] });
+    await writeFile(join(root, "scripts/unlisted.mts"), 'throw new Error("must not run")');
+    const hook = (name: string) => ({ name, command: [process.execPath, "-e", `const fs=require('node:fs'); const c=JSON.parse(process.env.WORKTREE_CONTEXT); fs.appendFileSync('events', JSON.stringify({name:${JSON.stringify(name)},c,arg:process.argv[1]})+'\\n');`, "; $(echo unsafe) &"] });
     await writeFile(join(root, "scripts/worktree.config.json"), JSON.stringify({ profiles: {
       example: { hooks: { afterPrepare: [hook("A"), hook("B")] } },
       docs: { hooks: { afterPrepare: [hook("docs")] } }
@@ -329,7 +330,7 @@ test("profile-selection, hook-order, literal-argv, worktree-context and setup-lo
   }
   const results = await Promise.all(roots.flatMap((root) => [f.run(root, "setup", "--prepare-only", "--profile", "example"), f.run(root, "setup", "--prepare-only", "--profile", "example")]));
   for (const r of results) assert.equal(r.code, 0, r.output);
-  const events = await Promise.all(roots.map(async (root) => (await readFile(join(root, "events"), "utf8")).trim().split("\n").map(JSON.parse)));
+  const events = await Promise.all(roots.map(async (root) => (await readFile(join(root, "events"), "utf8")).trim().split("\n").map((line) => JSON.parse(line))));
   for (let i=0; i<roots.length; i++) {
     assert.deepEqual(events[i].map((e) => e.name), ["A", "B", "A", "B"]);
     assert.equal(events[i][0].c.root, roots[i]);
@@ -374,11 +375,11 @@ test("phase-order: bootstrap then two scripts then environment import and push",
       fs.writeFileSync('.convex/local/default/config.json',JSON.stringify({deploymentName:'anonymous-'+path.basename(process.cwd()),ports:{cloud:Number(args[args.indexOf('--local-cloud-port')+1]),site:Number(args[args.indexOf('--local-site-port')+1])}})); event('bootstrap');
     } else event('push');
   `);
-  await writeFile(join(root,"scripts/example/prepare.mjs"), "import fs from 'node:fs'; fs.appendFileSync('events','prepare\\n');");
-  await writeFile(join(root,"scripts/example/credentials.mjs"), "import fs from 'node:fs'; const c=JSON.parse(process.env.WORKTREE_CONTEXT); fs.writeFileSync(c.environmentFile,'EXAMPLE=ready\\n'); fs.appendFileSync('events','credentials\\n');");
+  await writeFile(join(root,"scripts/example/prepare.mts"), "import fs from 'node:fs'; fs.appendFileSync('events','prepare\\n');");
+  await writeFile(join(root,"scripts/example/credentials.mts"), "import fs from 'node:fs'; const c=JSON.parse(process.env.WORKTREE_CONTEXT); fs.writeFileSync(c.environmentFile,'EXAMPLE=ready\\n'); fs.appendFileSync('events','credentials\\n');");
   await writeFile(join(root,"scripts/worktree.config.json"),JSON.stringify({profiles:{example:{hooks:{beforeImport:[
-    {name:"prepare",command:[process.execPath,"scripts/example/prepare.mjs"]},
-    {name:"credentials",command:[process.execPath,"scripts/example/credentials.mjs"]}
+    {name:"prepare",command:[process.execPath,"scripts/example/prepare.mts"]},
+    {name:"credentials",command:[process.execPath,"scripts/example/credentials.mts"]}
   ]}}}}));
   const r=await f.run(root,"setup","--profile","example"); assert.equal(r.code,0,r.output);
   assert.equal(await readFile(join(root,"events"),"utf8"),"bootstrap\nprepare\ncredentials\nimport\npush\n");
@@ -386,8 +387,8 @@ test("phase-order: bootstrap then two scripts then environment import and push",
 
 test("legacy-compatibility: editor prepareCommand can invoke the compatibility entry without profiles", async (t) => {
   const f=await fixture(t), root=await f.root("legacy");
-  const wrapper=fileURLToPath(new URL("../worktree.mjs",import.meta.url));
-  const result=await new Promise((resolve,reject)=>{
+  const wrapper=fileURLToPath(new URL("../worktree.mts",import.meta.url));
+  const result=await new Promise<{ code: number | null; output: string }>((resolve,reject)=>{
     const child=spawn(process.execPath,[wrapper,"setup","--prepare-only"],{cwd:root,env:{...process.env,WORKTREE_REGISTRY_DIR:f.registry}});
     let output=""; child.stdout.on("data",d=>output+=d); child.stderr.on("data",d=>output+=d);
     child.on("error",reject); child.on("exit",code=>resolve({code,output}));

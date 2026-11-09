@@ -1,3 +1,4 @@
+import type { TestContext } from "node:test";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, realpath, symlink } from "node:fs/promises";
@@ -6,11 +7,11 @@ import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const script = fileURLToPath(new URL("./cli.mjs", import.meta.url));
-function git(root, ...args) {
+const script = fileURLToPath(new URL("./cli.mts", import.meta.url));
+function git(root: string, ...args: string[]) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 }
-async function fixture(t, manifest = { private: true }) {
+async function fixture(t: TestContext, manifest: Record<string, unknown> = { private: true }) {
   const base = await realpath(await mkdtemp(path.join(tmpdir(), "backend-free-")));
   t.after(() => rm(base, { recursive: true, force: true }));
   const origin = path.join(base, "origin"), root = path.join(base, "checkout");
@@ -23,11 +24,11 @@ async function fixture(t, manifest = { private: true }) {
   await writeFile(path.join(origin, ".gitignore"), ".worktree/\n.convex/\n.env.local\n");
   git(origin, "add", "."); git(origin, "commit", "-m", "Dependency-free toolkit");
   git(base, "clone", origin, root);
-  const run = (checkout, ...args) => spawnSync(process.execPath, [script, ...args], {
+  const run = (checkout: string, ...args: string[]) => spawnSync(process.execPath, [script, ...args], {
     cwd: checkout, encoding: "utf8", timeout: 10000,
     env: { ...process.env, WORKTREE_REGISTRY_DIR: path.join(base, "registry") },
   });
-  const ok = (checkout, ...args) => {
+  const ok = (checkout: string, ...args: string[]) => {
     const result = run(checkout, ...args);
     assert.equal(result.status, 0, result.stderr + result.stdout);
     return result;

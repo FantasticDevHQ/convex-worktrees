@@ -9,6 +9,9 @@ permissions:
 jobs:
   test:
     runs-on: ubicloud-standard-2-ubuntu-2404
+    strategy:
+      matrix:
+        node: [22.18.0, 24]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -17,30 +20,32 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm run typecheck
       - run: node scripts/check.mjs
       - name: Exercise the toolkit's own lifecycle
         run: |
-          node scripts/worktree/cli.mjs setup
-          node scripts/worktree/cli.mjs start
-          node scripts/worktree/cli.mjs stop
-          node scripts/worktree/cli.mjs teardown
-          node scripts/worktree/cli.mjs cleanup --yes
-          node scripts/worktree/cli.mjs prune
+          node scripts/worktree/cli.mts setup
+          node scripts/worktree/cli.mts start
+          node scripts/worktree/cli.mts stop
+          node scripts/worktree/cli.mts teardown
+          node scripts/worktree/cli.mts cleanup --yes
+          node scripts/worktree/cli.mts prune
       - name: Create and clean a real toolkit worktree
         if: github.ref == 'refs/heads/main'
         run: |
-          node scripts/worktree/cli.mjs setup --path "$RUNNER_TEMP/toolkit-worktree" --branch ci/worktree-smoke
+          node scripts/worktree/cli.mts setup --path "$RUNNER_TEMP/toolkit-worktree" --branch ci/worktree-smoke
           cd "$RUNNER_TEMP/toolkit-worktree"
-          node scripts/worktree/cli.mjs cleanup --yes
+          node scripts/worktree/cli.mts cleanup --yes
           cd "$GITHUB_WORKSPACE"
           git worktree remove "$RUNNER_TEMP/toolkit-worktree"
           git branch -D ci/worktree-smoke
       - name: Always tear down owned checkout state
         if: always()
         run: |
-          node scripts/worktree/cli.mjs teardown
-          node scripts/worktree/cli.mjs cleanup --yes
+          node scripts/worktree/cli.mts teardown
+          node scripts/worktree/cli.mts cleanup --yes
   quality:
     name: Repository quality gates
     needs: test

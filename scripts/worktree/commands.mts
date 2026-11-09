@@ -2,15 +2,15 @@ import { existsSync } from "node:fs";
 
 import { spawn } from "node:child_process";
 
-import { root, frontend, stateFile, sleep, layout } from "./context.mjs";
-import { projectLock } from "./registry.mjs";
-import { state, childEnv } from "./config.mjs";
-import { serviceStatus } from "./services.mjs";
-import { ownedRunning, serve, start, stopOnly } from "./processes.mjs";
-import { setup, teardown, prune } from "./lifecycle.mjs";
-import { packageBin } from "./dependencies.mjs";
+import { root, frontend, stateFile, sleep, layout } from "./context.mts";
+import { projectLock } from "./registry.mts";
+import { state, childEnv } from "./config.mts";
+import { serviceStatus } from "./services.mts";
+import { ownedRunning, serve, start, stopOnly } from "./processes.mts";
+import { setup, teardown, prune } from "./lifecycle.mts";
+import { packageBin } from "./dependencies.mts";
 
-import { validateProfiles } from "./hooks.mjs";
+import { validateProfiles } from "./hooks.mts";
 
 export async function main() {
   if (["setup", "start"].includes(process.argv[2])) validateProfiles();
@@ -60,6 +60,7 @@ export async function main() {
     while (!stopping && (await ownedRunning(s))) await sleep(250);
   } else if (command === "frontend") {
     const s = await state();
+    if (s.mode === "none") throw new Error("No frontend configured with convex:false.");
     const child = spawn(
       process.execPath,
       [

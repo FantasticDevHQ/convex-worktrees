@@ -1,7 +1,8 @@
+import type { GitHubApi } from "./enforce-pr-standard.mts";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { enforcePullRequestStandard } from "./enforce-pr-standard.mjs";
+import { enforcePullRequestStandard } from "./enforce-pr-standard.mts";
 
 test("metadata workflow grants the API permissions its enforcer requires", async () => {
   const workflow = await readFile(
@@ -34,9 +35,9 @@ const valid = {
   head: { sha: "abc123" },
 };
 
-function fixture(pr, comments = []) {
-  const calls = [];
-  const api = async (method, path, data) => {
+function fixture(pr: typeof valid, comments: { id: number; user: { login: string; type: string }; body: string }[] = []) {
+  const calls: { method: string; path: string; data?: Record<string, any> }[] = [];
+  const api: GitHubApi = async (method, path, data) => {
     calls.push({ method, path, data });
     if (path === "/pulls/65") return pr;
     if (path.startsWith("/pulls/65/files?")) return [];
@@ -61,11 +62,11 @@ test("invalid PR fails its own head status and receives actionable feedback", as
     body: "",
   });
   assert.equal(await run(), false);
-  assert.equal(calls.at(-1).path, "/statuses/abc123");
-  assert.equal(calls.at(-1).data.state, "failure");
+  assert.equal(calls.at(-1)!.path, "/statuses/abc123");
+  assert.equal(calls.at(-1)!.data!.state, "failure");
   const comment = calls.find((call) => call.path === "/issues/65/comments");
-  assert.match(comment.data.body, /Summary/);
-  assert.match(comment.data.body, /TICKET-123/);
+  assert.match(comment!.data!.body, /Summary/);
+  assert.match(comment!.data!.body, /TICKET-123/);
 });
 
 test("corrected PR updates the bot comment and passes without comment spam", async () => {
@@ -78,10 +79,10 @@ test("corrected PR updates the bot comment and passes without comment spam", asy
   ]);
   assert.equal(await run(), true);
   assert.match(
-    calls.find((call) => call.method === "PATCH").data.body,
+    calls.find((call) => call.method === "PATCH")!.data!.body,
     /PR standard passed/,
   );
-  assert.equal(calls.at(-1).data.state, "success");
+  assert.equal(calls.at(-1)!.data!.state, "success");
   assert.equal(
     calls.filter((call) => call.path === "/issues/65/comments").length,
     0,
@@ -111,11 +112,11 @@ test("valid PR needs no new comment; closed PRs receive no writes", async () => 
 });
 
 test("API failure publishes a terminal failure status and rethrows the original error", async () => {
-  const states = [];
-  const api = async (method, path, data) => {
+  const states: unknown[] = [];
+  const api: GitHubApi = async (method, path, data) => {
     if (path === "/pulls/65") return valid;
     if (path.startsWith("/pulls/65/files?")) return [];
-    if (path.startsWith("/statuses/")) states.push(data.state);
+    if (path.startsWith("/statuses/")) states.push(data!.state);
     if (path.includes("comments")) throw new Error("GitHub unavailable");
   };
   await assert.rejects(
@@ -131,13 +132,13 @@ test("API failure publishes a terminal failure status and rethrows the original 
 
 test("a failed failure-status update does not mask the original API error", async () => {
   const original = new Error("Comment listing failed");
-  const states = [];
-  const api = async (method, path, data) => {
+  const states: unknown[] = [];
+  const api: GitHubApi = async (method, path, data) => {
     if (path === "/pulls/65") return valid;
     if (path.startsWith("/pulls/65/files?")) return [];
     if (path.startsWith("/statuses/")) {
-      states.push(data.state);
-      if (data.state === "failure")
+      states.push(data!.state);
+      if (data!.state === "failure")
         throw new Error("Status publication failed");
     }
     if (path.includes("comments")) throw original;
