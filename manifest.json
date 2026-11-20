@@ -54,7 +54,7 @@
     },
     "processes.mts": {
       "path": "scripts/worktree/processes.mts",
-      "sha256": "5e43b161361b1570dd8325561614a5d0c6e9dbb9301001b4dd0cd9f5a96429da"
+      "sha256": "19210a6c86cb2390fbd6cab1dfa5fd15aeb5642cf41863c9e0d44fff63c31596"
     },
     "registry.mts": {
       "path": "scripts/worktree/registry.mts",
@@ -99,6 +99,10 @@
     "services.test.mts": {
       "path": "scripts/worktree/services.test.mts",
       "sha256": "7e4ba8803605de7325ed19770f041efafcb434b52c029b3155f6be4ef4a5f091"
+    },
+    "ownership.test.mts": {
+      "path": "scripts/worktree/ownership.test.mts",
+      "sha256": "dba71bd63ca7b13cca7312430cf9e045f3de3ee0df51a2244bc2e897205248e5"
     },
     "types.mts": {
       "path": "scripts/worktree/types.mts",

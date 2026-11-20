@@ -99,27 +99,35 @@ export async function run(
 export async function ownedRunning(s: WorktreeState | null) {
   if (!s) return false;
   const runtime = await read<Runtime | null>(path.join(dir, "runtime.json"), null);
-  if (!runtime || !alive(runtime.pid)) return false;
-  let command: string;
-  try {
-    command = execFileSync(
-      "ps",
-      ["-p", String(runtime.pid), "-o", "stat=,command="],
-      { encoding: "utf8" },
-    );
-  } catch (error) {
-    if (error.status === 1) return false; // Exited between the liveness and ownership checks.
-    throw error;
+  if (!runtime) return false;
+  // An exiting supervisor releases its memory before it becomes a zombie. In
+  // that short window Linux ps shows a running process with an empty command
+  // line ("[MainThread]"), which matches no owner. Look again until the process
+  // is gone, is a zombie, or still shows a foreign command after the grace.
+  const deadline = Date.now() + ownershipGraceMs;
+  for (;;) {
+    if (!alive(runtime.pid)) return false;
+    let command: string;
+    try {
+      command = execFileSync(
+        "ps",
+        ["-p", String(runtime.pid), "-o", "stat=,command="],
+        { encoding: "utf8" },
+      );
+    } catch (error) {
+      if (error.status === 1) return false; // Exited between the liveness and ownership checks.
+      throw error;
+    }
+    // A supervisor can exit before its parent reaps it. Never signal a zombie.
+    if (/^\s*Z/.test(command)) return false;
+    if (command.includes(script) && command.includes(`--owner=${s.id}`)) return runtime;
+    if (Date.now() >= deadline) throw new Error("Recorded PID belongs to another process; refusing to signal it.");
+    await sleep(50);
   }
-  // A supervisor can exit before its parent reaps it. Never signal a zombie.
-  if (/^\s*Z/.test(command)) return false;
-  if (!command.includes(script) || !command.includes(`--owner=${s.id}`)) {
-    throw new Error(
-      "Recorded PID belongs to another process; refusing to signal it.",
-    );
-  }
-  return runtime;
 }
+
+/** How long an exiting supervisor may show no command line before ownership fails. */
+const ownershipGraceMs = 2000;
 
 export async function reserve(s: BackendState) {
   await locked(async (leases) => {
