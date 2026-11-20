@@ -6,6 +6,7 @@ import path from "node:path";
 import { root, backend, dir, stateFile, configFile, read, layout } from "./context.mts";
 import { safe, json } from "./files.mts";
 import { packageBin } from "./dependencies.mts";
+import { wrap, frontendValues } from "./config-store.mts";
 
 export async function state() {
   await safe(stateFile);
@@ -59,6 +60,23 @@ export function childEnv(s: BackendState, bootstrap = false) {
     PORT: String(s.ports.web),
     HOME: path.join(dir, "home"),
     XDG_CACHE_HOME: path.join(dir, "cache"),
+  };
+}
+
+/**
+ * The command and environment for a backend or frontend child. Without a
+ * config store the frontend values are passed directly when `envFiles` is
+ * false. With one, the child runs under `doppler run` for the worktree's
+ * branch config, and Doppler itself runs with the real HOME.
+ */
+export function spawnSpec(s: BackendState, command: string[], frontendChild = false) {
+  const env: Record<string, string | undefined> = childEnv(s);
+  if (!s.configStore)
+    return { command, env: frontendChild && layout.envFiles === false ? { ...env, ...frontendValues(s) } : env };
+  const isolated = { HOME: env.HOME!, XDG_CACHE_HOME: env.XDG_CACHE_HOME!, CONVEX_AGENT_MODE: env.CONVEX_AGENT_MODE!, PORT: env.PORT! };
+  return {
+    command: wrap(s.configStore, command, isolated),
+    env: { ...env, HOME: process.env.HOME ?? homedir(), XDG_CACHE_HOME: process.env.XDG_CACHE_HOME },
   };
 }
 

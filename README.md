@@ -179,6 +179,7 @@ A single-package app can set `backend` and `frontend` to `.`. Configure these fi
 | `secretEnv` | Names of values generated once per checkout and retained across repeated setup. |
 | `siteUrlEnv` | Backend variables that should contain this checkout's frontend URL. |
 | `bootstrapMissingEnv` | Specific missing-variable errors allowed only on the first push, before defaults are seeded and a final successful push is required. |
+| `envFiles` | Optional. Omit or use `true` to write the frontend and backend `.env.local` files. Set `false` to write none: the frontend values are passed to the children the toolkit starts, and `node scripts/worktree/cli.mts env` prints them as JSON (ports, URLs and deployment name; no secrets) for tools that start their own processes. |
 
 The remote is `origin`. Setup resolves its live symbolic default branch unless `baseBranch` is set; it does not assume a branch named `main`. For a non-default integration branch, add a branch name to the adapter, for example:
 
@@ -193,6 +194,8 @@ The remote is `origin`. Setup resolves its live symbolic default branch unless `
 If the default cannot be resolved or the selected branch cannot be fetched, setup stops clearly. Use an explicit `baseBranch` when the remote does not advertise a default. Both existing-checkout refresh and new-worktree creation use the same resolved remote base.
 
 An existing local base branch is fast-forwarded only when safe, including when it is checked out in a sibling worktree. New-worktree creation uses the fetched commit without merging it into a different caller branch.
+
+A profile can also keep a checkout's settings in its own Doppler branch config instead of local files; see [the config store in PROFILES.md](scripts/worktree/PROFILES.md#config-store-doppler). Without a `configStore` and without `envFiles: false`, setup writes the same files as before.
 
 The environment defaults start empty. Add only what your app needs. Never put production credentials in the configuration. External integrations require separate test credentials and verification; successful schema deployment does not test them.
 
@@ -273,6 +276,8 @@ Run lifecycle commands directly as `node scripts/worktree/cli.mts <command>`, or
 | pnpm | `pnpm run worktree:cleanup --yes` |
 | npm | `npm run worktree:cleanup -- --yes` |
 
+With a profile `configStore`, teardown keeps the checkout's Doppler branch config and cleanup deletes it; cleanup never deletes a config the checkout did not create.
+
 Teardown does not remove Git branches or checkout directories. Run it before your editor or Git removes a checkout. Deleting that directory also deletes any database inside it, even though teardown itself preserves data.
 
 After teardown, another checkout can claim the released ports. Restart reclaims them only if free. If reassigned, the command fails clearly. Explicit cleanup and fresh setup allocate new state and ports, but cleanup deletes the old database. Preserve anything needed first.
@@ -340,6 +345,7 @@ Run `npm ci`, `npm run typecheck` and `node scripts/check.mjs` before submitting
 - `registry.mts`: locking, reservations and port probes.
 - `dependencies.mts`: package-manager detection, frozen installs and workspace-local CLI resolution.
 - `config.mts` and `files.mts`: state validation, environment selection and safe file operations.
+- `config-store.mts`: the optional Doppler config store and `envFiles: false` support.
 - `processes.mts`: owned process supervision and graceful shutdown.
 - `lifecycle.mts`: setup, teardown, cleanup and prune.
 - `installer.mts`: verified source copying used by the Node installation entry point.

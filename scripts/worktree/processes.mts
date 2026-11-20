@@ -21,8 +21,9 @@ import {
 import { launchServices, stopChildren, serviceStatus, markServicesStopped } from "./services.mts";
 import { safe, json } from "./files.mts";
 import { alive, locked, available } from "./registry.mts";
-import { state, checkConfig, childEnv, convexArgs } from "./config.mts";
+import { state, checkConfig, childEnv, convexArgs, spawnSpec } from "./config.mts";
 import { packageBin } from "./dependencies.mts";
+import { removeConvexEnvFile } from "./config-store.mts";
 
 export async function run(
   args: string[],
@@ -79,6 +80,7 @@ export async function run(
   }
   if (!stopped)
     throw new Error("Convex command exited but local ports did not close.");
+  await removeConvexEnvFile();
   if (failure) {
     const config = await read<Layout>(
       path.join(root, "scripts/worktree.config.json"),
@@ -187,15 +189,17 @@ export async function serve(s: WorktreeState, withFrontend = false) {
   process.on("SIGINT", () => void stop());
   try {
     if (managed) {
+      const spec = spawnSpec(s, [process.execPath, ...backendArgs!]);
       await new Promise<void>((resolve, reject) => {
-        const child = spawn(process.execPath, backendArgs!, { cwd: backend, env: childEnv(s), stdio: ["ignore", "pipe", "pipe"] });
+        const child = spawn(spec.command[0], spec.command.slice(1), { cwd: backend, env: spec.env, stdio: ["ignore", "pipe", "pipe"] });
         children.push(child);
         let output = "";
         const timer = setTimeout(() => reject(new Error("Backend readiness timed out")), 120000);
         const consume = (data: Buffer) => {
           process.stdout.write(data);
           output = (output + data).slice(-65536);
-          if (output.includes("Convex functions ready")) { clearTimeout(timer); resolve(); }
+          // Configuration has run by now; drop the file it wrote.
+          if (output.includes("Convex functions ready")) { clearTimeout(timer); removeConvexEnvFile().then(resolve, reject); }
         };
         child.stdout.on("data", consume); child.stderr.on("data", consume);
         child.once("error", (error) => { clearTimeout(timer); reject(error); if (!stopping) failure(error.message); });
@@ -205,7 +209,8 @@ export async function serve(s: WorktreeState, withFrontend = false) {
     markStopped = await launchServices(profile, s, children, failure, () => stopping);
     if (stopping) return;
     if (withFrontend && s.mode !== "none") {
-      const web = spawn(process.execPath, [frontendBin!, "dev", "--port", String(s.ports.web)], { cwd: frontend, env: childEnv(s), stdio: "inherit" });
+      const spec = spawnSpec(s, [process.execPath, frontendBin!, "dev", "--port", String(s.ports.web)], true);
+      const web = spawn(spec.command[0], spec.command.slice(1), { cwd: frontend, env: spec.env, stdio: "inherit" });
       children.push(web);
       web.once("error", (error) => { if (!stopping) failure(error.message); });
       web.once("exit", (code) => { if (!stopping) failure(`Frontend exited (${code})`); });
