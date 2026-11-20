@@ -46,6 +46,8 @@ export interface ConfigStore {
   kind: "doppler";
   project: string;
   config: string;
+  /** Required to branch from a staging or production config. */
+  allowProtected?: boolean;
 }
 /** The branch config a worktree owns, recorded in its state. */
 export interface StoreRecord {

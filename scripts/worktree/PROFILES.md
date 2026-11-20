@@ -132,7 +132,9 @@ of `.env.local` files. It is opt-in; without `configStore` nothing changes.
 ```
 
 `kind` must be `doppler`. `project` and `config` are lowercase slugs, and
-`config` is a root config without `_`. Doppler needs the CLI on PATH and a
+`config` is a root config without `_`. A staging or production root (`stg`,
+`prd`, `staging`, `prod`, `production`) is refused unless the store also sets
+`"allowProtected": true`. Doppler needs the CLI on PATH and a
 `doppler login` with access to the project; without one, setup stops and prints
 no values. No other credential is read.
 
@@ -142,27 +144,35 @@ name as a slug, and the first eight hex digits of the worktree ID. It creates it
 in the root config's environment, so it inherits the shared values. It writes
 the checkout's ports, URLs, deployment name and `siteUrlEnv` values there. Each
 `secretEnv` value is generated once and sent to Doppler on stdin, never in argv
-or output; repeated setup keeps it. Just before `convex env set`, the
-`secretEnv`, `siteUrlEnv` and `env` keys are read from the branch config into
-`.worktree/backend.env`, over the layout defaults; the file is deleted after the
-import. Hooks see `configStore` (`kind`, `project`, `config`) in
+or output; repeated setup keeps it, and generates it again if the branch no
+longer holds its own value rather than inheriting the root's. Just before
+`convex env set`, the `secretEnv`, `siteUrlEnv` and `env` keys are read from the
+branch config into `.worktree/backend.env`, over the layout defaults; the file
+is deleted after the import. It is short-lived: if setup is killed during the
+import, the next setup and `cleanup --yes` remove it. Doppler values are parsed
+from stdout only and never quoted in an error. Hooks see `configStore` (`kind`, `project`, `config`) in
 `WORKTREE_CONTEXT`.
 
-The backend and frontend run under `doppler run` for the branch config. Doppler
-runs with the developer's real HOME, where its login lives; the children still
-get the isolated HOME, cache and anonymous agent mode. `CONVEX_DEPLOY_KEY`,
-`CONVEX_DEPLOYMENT_TOKEN`, `CONVEX_SELF_HOSTED_URL`,
-`CONVEX_SELF_HOSTED_ADMIN_KEY`, `CONVEX_URL` and `CONVEX_SITE_URL` are removed
-after Doppler injects values, so an inherited remote Convex key never reaches a
-child.
+The backend and frontend run under `doppler run --no-fallback` for the branch
+config, so Doppler keeps no encrypted copy of the secrets on disk and a run
+fails rather than using stale values when Doppler is unreachable. Doppler runs
+with the developer's real HOME, where its login lives; the children still get
+the isolated HOME, cache and anonymous agent mode. Every `CONVEX_*` and
+`NEXT_PUBLIC_CONVEX_*` key Doppler injects is removed, as for the parent
+environment, except those the branch config sets for the checkout, so an
+inherited remote Convex key never reaches a child.
 
-Teardown keeps the branch config. `cleanup --yes` deletes it, and only a config
-whose name matches this checkout's pattern; a missing config is not an error.
+Teardown keeps the branch config. `cleanup --yes` deletes it, and only the exact
+name this checkout's directory and identity produce, so a copied or edited
+`.worktree/local.json` cannot reach another checkout's config; a missing config
+is not an error.
 Setup refuses to change or drop the store of an existing checkout; clean up
 first.
 
 With layout `"envFiles": false` the toolkit writes no `.env.local`, with or
 without a store. Children get the frontend values directly, and the backend
 `.env.local` that the Convex CLI writes is removed when it holds only Convex
-keys. `node scripts/worktree/cli.mts env` prints the frontend values as JSON.
+keys, as is the `.gitignore` it creates for it when that file is untracked and
+ignores nothing else. No `.env*` file at all needs both `envFiles: false` and a
+store: without a store, generated secrets stay in `.worktree/backend.env`. `node scripts/worktree/cli.mts env` prints the frontend values as JSON.
 `config-store.test.mts` exercises all of this against a fake `doppler` on PATH.

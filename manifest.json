@@ -34,7 +34,7 @@
     },
     "config.mts": {
       "path": "scripts/worktree/config.mts",
-      "sha256": "63369462b150a1e114fca3ea84efc19514cb1877a412fa7ba8658adaaeb8aea2"
+      "sha256": "87d30021768caea0bbc2cce2ff04da8b15e8d3b735c94314c535f31f3bcb0890"
     },
     "context.mts": {
       "path": "scripts/worktree/context.mts",
@@ -50,7 +50,7 @@
     },
     "lifecycle.mts": {
       "path": "scripts/worktree/lifecycle.mts",
-      "sha256": "9ff84e2d93bf0c7da98950f6bced9d2b8be010eb3db71ef24a86555bfb00e36f"
+      "sha256": "69230688ccb06df35e5a14547bd8308b4af23030eeb94f4f40727184d9a76a16"
     },
     "processes.mts": {
       "path": "scripts/worktree/processes.mts",
@@ -90,7 +90,7 @@
     },
     "PROFILES.md": {
       "path": "scripts/worktree/PROFILES.md",
-      "sha256": "1e359d504cc2286f653d45e611c0dec96ac99699574acc0ea0d36645ad0db826"
+      "sha256": "1c1d9e84ac9bea1988f4c0ff1f5e341e1f47a8f1afc0d727cb3fe8ee35c8f2c6"
     },
     "services.mts": {
       "path": "scripts/worktree/services.mts",
@@ -106,15 +106,15 @@
     },
     "types.mts": {
       "path": "scripts/worktree/types.mts",
-      "sha256": "529e56bd7c2d480acd4e0ef76314237b45d8ebba6c2d925c5a73243cda63f2c9"
+      "sha256": "b4a65216fcda43e0d55987f9e3940a9798333f0772945d620f7ce21f1c44530d"
     },
     "config-store.mts": {
       "path": "scripts/worktree/config-store.mts",
-      "sha256": "0719e81e7f18aa92f3c3999a17c4818315296fe2096903144831249f1a377bc6"
+      "sha256": "faf0eb86188f97cee5f2c00b9711114693056f2fb716bef106d772a964f27e19"
     },
     "config-store.test.mts": {
       "path": "scripts/worktree/config-store.test.mts",
-      "sha256": "29f2c25d04d17aa8dc191fa9774ffe017229c205690042aae9cf220680388639"
+      "sha256": "995585e14c0ad34864ebab164d45d40d435bdd0f88375b6f6182e961759c10bc"
     }
   },
   "formatVersion": 1

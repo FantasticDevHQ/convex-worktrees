@@ -22,7 +22,8 @@ import { fileURLToPath } from "node:url";
 const script = fileURLToPath(new URL("./cli.mts", import.meta.url));
 
 // Values in a config are the branch's own over its root's, like Doppler's
-// inheritance. `run` forwards SIGINT/SIGTERM as the real CLI does.
+// inheritance. `run` forwards SIGINT/SIGTERM as the real CLI does. Every
+// command prints a notice on stderr, as the real CLI does when an update is out.
 const fakeDoppler = String.raw`#!/usr/bin/env node
 const fs = require("node:fs"), { spawn } = require("node:child_process");
 const file = process.env.FAKE_DOPPLER_STORE, log = process.env.FAKE_DOPPLER_LOG;
@@ -34,6 +35,7 @@ const dash = argv.indexOf("--");
 const own = dash < 0 ? argv : argv.slice(0, dash);
 fs.appendFileSync(log, JSON.stringify({ argv: own, home: process.env.HOME }) + "\n");
 if (process.env.FAKE_DOPPLER_LOGGED_OUT) { console.error("Doppler Error: you must provide a token"); process.exit(1); }
+console.error("Doppler CLI notice: a newer version is available");
 const name = flag("--config");
 const missing = () => { console.error("Doppler Error: Could not find requested config '" + name + "'"); process.exit(1); };
 const resolved = (n) => { const c = store.configs[n]; return c.inherits ? { ...store.configs[c.inherits].values, ...c.values } : { ...c.values }; };
@@ -59,14 +61,16 @@ else if (group === "run") {
 `;
 
 // Convex: like the real CLI, every \`dev\` writes .env.local in the backend
-// directory. Bootstrap writes the local config, \`env set\` copies the import
-// file, a long-running \`dev\` records its environment and reports ready.
+// directory, and a .gitignore for it when there is none. Bootstrap writes the
+// local config, \`env set\` copies the import file, and a long-running \`dev\`
+// records its environment and reports ready.
 const fakeConvex = String.raw`
 const fs = require("node:fs"), path = require("node:path"), args = process.argv.slice(2);
 const seen = (name) => fs.writeFileSync(name, JSON.stringify(process.env));
 if (args[0] === "dev") {
   const kept = fs.existsSync(".env.local") ? fs.readFileSync(".env.local", "utf8").split("\n").filter((l) => l && !/CONVEX|convex dev/.test(l)) : [];
   fs.writeFileSync(".env.local", [...kept, "# Deployment used by \x60npx convex dev\x60", "CONVEX_DEPLOYMENT=anonymous:anonymous-x # team: anonymous", "", "CONVEX_URL=http://127.0.0.1:1", "NEXT_PUBLIC_CONVEX_SITE_URL=http://127.0.0.1:2", ""].join("\n"));
+  if (!fs.existsSync(".gitignore")) fs.writeFileSync(".gitignore", "\n.env.local\n");
 }
 if (args[0] === "env") fs.copyFileSync(args[args.indexOf("--from-file") + 1], "imported");
 else if (!fs.existsSync(".convex/local/default/config.json")) {
@@ -116,6 +120,8 @@ async function fixture(t: TestContext) {
           values: {
             STRIPE_SECRET_KEY: "sk_test_from_dev",
             CONVEX_DEPLOY_KEY: "never-reaches-a-child",
+            CONVEX_ADMIN_KEY: "never-reaches-a-child",
+            NEXT_PUBLIC_CONVEX_EXTRA: "never-reaches-a-child",
           },
         },
       },
@@ -239,6 +245,8 @@ test("setup keeps the worktree's ports, URLs and secret in its own branch config
   assert.deepEqual(configs.dev.values, {
     STRIPE_SECRET_KEY: "sk_test_from_dev",
     CONVEX_DEPLOY_KEY: "never-reaches-a-child",
+    CONVEX_ADMIN_KEY: "never-reaches-a-child",
+    NEXT_PUBLIC_CONVEX_EXTRA: "never-reaches-a-child",
   });
   // The secret went over stdin, never argv or output.
   const argv = (await f.calls()).flatMap((call) => call.argv).join(" ");
@@ -303,6 +311,7 @@ test("start runs Convex and Next.js under doppler run with the worktree's branch
   for (const call of runs) {
     assert.deepEqual(call.argv, [
       "run",
+      "--no-fallback",
       "--project",
       "example-app",
       "--config",
@@ -324,7 +333,10 @@ test("start runs Convex and Next.js under doppler run with the worktree's branch
     assert.equal(env.HOME, join(a, ".worktree/home"));
     assert.equal(env.CONVEX_AGENT_MODE, "anonymous");
     assert.equal(env.CONVEX_DEPLOYMENT, `anonymous:${s.deployment}`);
+    // Every Convex key Doppler injects is stripped, not only named ones.
     assert.equal(env.CONVEX_DEPLOY_KEY, undefined);
+    assert.equal(env.CONVEX_ADMIN_KEY, undefined);
+    assert.equal(env.NEXT_PUBLIC_CONVEX_EXTRA, undefined);
   }
   assert.equal((await f.run(a, ["stop"])).code, 0);
   assert.deepEqual(await envFiles(a), []);
@@ -369,13 +381,78 @@ test("cleanup refuses to delete a config the worktree did not create", async (t)
     0,
   );
   const s = await f.state(a);
-  s.configStore.config = "dev";
-  await writeFile(join(a, ".worktree/local.json"), JSON.stringify(s));
-  const result = await f.run(a, ["cleanup", "--yes"]);
-  assert.notEqual(result.code, 0);
-  assert.match(result.output, /did not create/);
-  assert.ok((await f.doppler()).dev);
+  // The root config, and a sibling worktree's config whose name has the same
+  // shape, as a copied or edited local.json would record.
+  const sibling = "dev_wt_other_checkout_deadbeef";
+  const store = join(f.dir, "doppler.json");
+  const data = JSON.parse(await readFile(store, "utf8"));
+  data.configs[sibling] = { inherits: "dev", values: { PORT: "1" } };
+  await writeFile(store, JSON.stringify(data));
+  for (const config of ["dev", sibling]) {
+    s.configStore.config = config;
+    await writeFile(join(a, ".worktree/local.json"), JSON.stringify(s));
+    const result = await f.run(a, ["cleanup", "--yes"]);
+    assert.notEqual(result.code, 0);
+    assert.match(result.output, /did not create/);
+  }
+  const configs = await f.doppler();
+  assert.ok(configs.dev);
+  assert.ok(configs[sibling]);
   assert.ok(!(await f.calls()).some((call) => call.argv[1] === "delete"));
+});
+
+test("a rerun replaces a missing secret and drops a leftover import file", async (t) => {
+  const f = await fixture(t),
+    a = await f.root("rerun", layout(dopplerStore));
+  const prepare = () =>
+    f.run(a, ["setup", "--prepare-only", "--profile", "doppler"]);
+  assert.equal((await prepare()).code, 0);
+  const s = await f.state(a);
+  // The branch loses its own secret while the root has one to inherit, and
+  // an interrupted import left its file behind.
+  const store = join(f.dir, "doppler.json");
+  const data = JSON.parse(await readFile(store, "utf8"));
+  delete data.configs[s.configStore.config].values.BETTER_AUTH_SECRET;
+  data.configs.dev.values.BETTER_AUTH_SECRET = "inherited-from-dev";
+  await writeFile(store, JSON.stringify(data));
+  await writeFile(
+    join(a, ".worktree/backend.env"),
+    "BETTER_AUTH_SECRET=leftover\n",
+  );
+  const result = await prepare();
+  assert.equal(result.code, 0, result.output);
+  const own = (await f.doppler())[s.configStore.config].values;
+  assert.match(own.BETTER_AUTH_SECRET, /^[0-9a-f]{64}$/);
+  assert.doesNotMatch(
+    await readFile(join(a, ".worktree/backend.env"), "utf8"),
+    /leftover/,
+  );
+});
+
+test("a staging or production config needs an explicit opt-in", async (t) => {
+  const f = await fixture(t);
+  for (const config of ["prd", "stg"]) {
+    const a = await f.root(config, layout({ ...dopplerStore, config }));
+    const result = await f.run(a, [
+      "setup",
+      "--prepare-only",
+      "--profile",
+      "doppler",
+    ]);
+    assert.notEqual(result.code, 0);
+    assert.match(result.output, /allowProtected/);
+  }
+  const a = await f.root(
+    "opted-in",
+    layout({ ...dopplerStore, config: "prd", allowProtected: true }),
+  );
+  const result = await f.run(a, [
+    "setup",
+    "--prepare-only",
+    "--profile",
+    "doppler",
+  ]);
+  assert.doesNotMatch(result.output, /invalid configStore/);
 });
 
 test("a missing Doppler login stops setup without printing values", async (t) => {
@@ -422,6 +499,7 @@ test("setup without a store writes no .env file and hands values to processes di
   assert.equal((await f.run(a, ["stop"])).code, 0);
   assert.equal((await f.run(a, ["teardown"])).code, 0);
   assert.deepEqual(await envFiles(a), []);
+  assert.ok(!(await readdir(a)).includes(".gitignore"));
 });
 
 test("a backend .env.local with keys of its own is left alone", async (t) => {
@@ -430,6 +508,17 @@ test("a backend .env.local with keys of its own is left alone", async (t) => {
   await writeFile(join(a, ".env.local"), "CUSTOM=keep\n");
   assert.equal((await f.run(a, ["setup"])).code, 0);
   assert.match(await readFile(join(a, ".env.local"), "utf8"), /^CUSTOM=keep$/m);
+});
+
+test("a .gitignore the project wrote is left alone", async (t) => {
+  const f = await fixture(t),
+    a = await f.root("own-ignore", layout(), true);
+  await writeFile(join(a, ".gitignore"), "node_modules\n.env.local\n");
+  assert.equal((await f.run(a, ["setup"])).code, 0);
+  assert.equal(
+    await readFile(join(a, ".gitignore"), "utf8"),
+    "node_modules\n.env.local\n",
+  );
 });
 
 test("setup refuses an invalid configStore and a store change", async (t) => {

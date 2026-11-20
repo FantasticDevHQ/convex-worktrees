@@ -30,7 +30,7 @@ import { run, ownedRunning, stopOnly } from "./processes.mts";
 import { refreshCheckout } from "./freshness.mts";
 
 import { validateProfiles, runHooks } from "./hooks.mts";
-import { branchName, frontendValues, writeBranch, readBranch, deleteBranch } from "./config-store.mts";
+import { branchName, frontendValues, writeBranch, readBranch, missingSecrets, deleteBranch } from "./config-store.mts";
 
 export async function setup(prepareOnly: boolean) {
   const profile = validateProfiles();
@@ -67,7 +67,12 @@ export async function setup(prepareOnly: boolean) {
   const store = profile?.configStore;
   if (s?.configStore && (!store || store.project !== s.configStore.project || store.config !== s.configStore.root))
     throw new Error(`This worktree keeps its settings in Doppler ${s.configStore.project}/${s.configStore.config}. Run setup with the profile that declares it, or cleanup --yes first.`);
-  const generated: Record<string, string> = {};
+  if (store) {
+    // The import file holds secrets only while an import runs; drop any copy
+    // an interrupted setup left behind.
+    await safe(path.join(dir, "backend.env"));
+    await fs.rm(path.join(dir, "backend.env"), { force: true });
+  }
   // Serialize both per-checkout preparation and cross-repository allocations.
   s = await locked(async (leases) => {
     const existing = await read<BackendState | null>(stateFile, null);
@@ -163,15 +168,16 @@ export async function setup(prepareOnly: boolean) {
       }
       await upsert(backendEnv, values);
     }
-    if (s.configStore && !s.configStore.seeded)
-      for (const key of layout.secretEnv || []) generated[key] = randomBytes(32).toString("hex");
     return s;
   });
   if (!s) throw new Error("Worktree allocation did not return state.");
   const prepared = s;
   if (prepared.configStore) {
     const siteUrls = Object.fromEntries((layout.siteUrlEnv || []).map((key) => [key, `http://localhost:${prepared.ports.web}`]));
-    await writeBranch(prepared.configStore, { ...frontendValues(prepared), ...siteUrls }, prepared.configStore.seeded ? {} : generated);
+    // Generate each secret the branch does not hold as its own, so a removed
+    // secret is replaced rather than silently inherited from the root config.
+    const generate = prepared.configStore.seeded ? await missingSecrets(prepared, layout.secretEnv || []) : layout.secretEnv || [];
+    await writeBranch(prepared, { ...frontendValues(prepared), ...siteUrls }, Object.fromEntries(generate.map((key) => [key, randomBytes(32).toString("hex")])));
     prepared.configStore.seeded = true;
     await json(stateFile, prepared);
   }
@@ -206,12 +212,12 @@ export async function setup(prepareOnly: boolean) {
         });
         }
         if (prepared.configStore)
-          await writeBranch(prepared.configStore, { CONVEX_DEPLOYMENT: `anonymous:${prepared.deployment}` });
+          await writeBranch(prepared, { CONVEX_DEPLOYMENT: `anonymous:${prepared.deployment}` });
       }
       await checkConfig(prepared, true);
       if (prepared.configStore) {
         // The worktree's own keys come from its branch config, over defaults.
-        const stored = await readBranch(prepared.configStore);
+        const stored = await readBranch(prepared);
         const keys = [...(layout.secretEnv || []), ...(layout.siteUrlEnv || []), ...Object.keys(layout.env || {})];
         await safe(path.join(dir, "backend.env"));
         await upsert(path.join(dir, "backend.env"), Object.fromEntries(keys.filter((key) => stored[key]).map((key) => [key, stored[key]])));
@@ -279,7 +285,7 @@ export async function teardown(cleanup = false) {
   if (cleanup) await checkConfig(s);
   await stopOnly(s);
   // Teardown keeps the branch config; cleanup deletes only this worktree's.
-  if (cleanup && s.configStore) await deleteBranch(s.configStore);
+  if (cleanup && s.configStore) await deleteBranch(s);
   await locked(async (leases) => {
     if (leases[root]?.id === s.id) delete leases[root];
     if (cleanup) {

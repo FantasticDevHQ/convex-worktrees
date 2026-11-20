@@ -75,7 +75,7 @@ export function spawnSpec(s: BackendState, command: string[], frontendChild = fa
     return { command, env: frontendChild && layout.envFiles === false ? { ...env, ...frontendValues(s) } : env };
   const isolated = { HOME: env.HOME!, XDG_CACHE_HOME: env.XDG_CACHE_HOME!, CONVEX_AGENT_MODE: env.CONVEX_AGENT_MODE!, PORT: env.PORT! };
   return {
-    command: wrap(s.configStore, command, isolated),
+    command: wrap(s, command, isolated),
     env: { ...env, HOME: process.env.HOME ?? homedir(), XDG_CACHE_HOME: process.env.XDG_CACHE_HOME },
   };
 }

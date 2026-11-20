@@ -179,7 +179,7 @@ A single-package app can set `backend` and `frontend` to `.`. Configure these fi
 | `secretEnv` | Names of values generated once per checkout and retained across repeated setup. |
 | `siteUrlEnv` | Backend variables that should contain this checkout's frontend URL. |
 | `bootstrapMissingEnv` | Specific missing-variable errors allowed only on the first push, before defaults are seeded and a final successful push is required. |
-| `envFiles` | Optional. Omit or use `true` to write the frontend and backend `.env.local` files. Set `false` to write none: the frontend values are passed to the children the toolkit starts, and `node scripts/worktree/cli.mts env` prints them as JSON (ports, URLs and deployment name; no secrets) for tools that start their own processes. |
+| `envFiles` | Optional. Omit or use `true` to write the frontend and backend `.env.local` files. Set `false` to write none: the frontend values are passed to the children the toolkit starts, and `node scripts/worktree/cli.mts env` prints them as JSON (ports, URLs and deployment name; no secrets) for tools that start their own processes. Without a `configStore`, generated secrets still live in `.worktree/backend.env`; leaving no `.env*` file at all needs both. |
 
 The remote is `origin`. Setup resolves its live symbolic default branch unless `baseBranch` is set; it does not assume a branch named `main`. For a non-default integration branch, add a branch name to the adapter, for example:
 
@@ -276,7 +276,7 @@ Run lifecycle commands directly as `node scripts/worktree/cli.mts <command>`, or
 | pnpm | `pnpm run worktree:cleanup --yes` |
 | npm | `npm run worktree:cleanup -- --yes` |
 
-With a profile `configStore`, teardown keeps the checkout's Doppler branch config and cleanup deletes it; cleanup never deletes a config the checkout did not create.
+With a profile `configStore`, teardown keeps the checkout's Doppler branch config and cleanup deletes it; cleanup deletes only the exact config name this checkout and its identity produce.
 
 Teardown does not remove Git branches or checkout directories. Run it before your editor or Git removes a checkout. Deleting that directory also deletes any database inside it, even though teardown itself preserves data.
 

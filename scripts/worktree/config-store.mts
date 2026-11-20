@@ -4,47 +4,63 @@
 // frontend values are computed from `.worktree/local.json` and passed to the
 // child processes. A profile's `configStore` additionally keeps those values,
 // with the generated secrets, in a Doppler branch config named for the
-// worktree, and runs the backend and frontend under `doppler run`.
+// worktree, and runs the backend and frontend under `doppler run`. Only both
+// together leave no `.env*` file at all: without a store, generated secrets
+// stay in `.worktree/backend.env`.
 //
 // Values set from argv are ports, URLs and deployment names only. Generated
 // secrets reach Doppler on stdin and are never printed.
 import type { BackendState, ConfigStore, StoreRecord } from "./types.mts";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { backend, layout } from "./context.mts";
+import { root, backend, layout } from "./context.mts";
 import { safe } from "./files.mts";
 
 const object = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 const slug = /^[a-z0-9][a-z0-9_-]*$/;
+// Doppler's staging and production configs. A worktree branches from one only
+// when the profile says so explicitly.
+const protectedConfig = /^(?:stg|prd|staging|prod|production)$/;
 
 /** Fails unless `store` is a valid `configStore` declaration. */
 export function validateStore(store: unknown, profile: string): ConfigStore {
-  const fail = (): never => {
-    throw new Error(`Profile configuration: invalid configStore in ${profile}`);
+  const fail = (reason = ""): never => {
+    throw new Error(
+      `Profile configuration: invalid configStore in ${profile}${reason}`,
+    );
   };
   if (
     !object(store) ||
     Object.keys(store).some(
-      (key) => !["kind", "project", "config"].includes(key),
+      (key) => !["kind", "project", "config", "allowProtected"].includes(key),
     )
   )
     fail();
-  const { kind, project, config } = store as Record<string, unknown>;
+  const { kind, project, config, allowProtected } = store as Record<
+    string,
+    unknown
+  >;
   if (
     kind !== "doppler" ||
     typeof project !== "string" ||
     !slug.test(project) ||
     typeof config !== "string" ||
     !slug.test(config) ||
-    config.includes("_")
+    config.includes("_") ||
+    (allowProtected !== undefined && typeof allowProtected !== "boolean")
   )
     fail();
+  if (protectedConfig.test(config as string) && allowProtected !== true)
+    fail(
+      `: ${config} is a staging or production config; set "allowProtected": true to branch from it`,
+    );
   return {
     kind: "doppler",
     project: project as string,
     config: config as string,
+    ...(allowProtected === true ? { allowProtected: true } : {}),
   };
 }
 
@@ -53,9 +69,9 @@ export function validateStore(store: unknown, profile: string): ConfigStore {
  * checkout name makes it readable in Doppler; the identity prefix keeps two
  * checkouts with the same directory name apart.
  */
-export function branchName(store: ConfigStore, root: string, id: string) {
+export function branchName(store: ConfigStore, checkout: string, id: string) {
   const name = path
-    .basename(root)
+    .basename(checkout)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
@@ -63,16 +79,30 @@ export function branchName(store: ConfigStore, root: string, id: string) {
   return `${store.config}_wt_${name || "checkout"}_${id.replace(/-/g, "").slice(0, 8)}`;
 }
 
-/** Only a branch config this toolkit named can be written or deleted. */
-export function assertOwnedBranch(record: StoreRecord) {
+/** A worktree's state: its identity and the branch config it recorded. */
+type Owner = Pick<BackendState, "id" | "configStore">;
+
+/**
+ * The branch config of this checkout. Only the exact name this checkout and
+ * identity produce can be written or deleted, so a copied or edited
+ * `.worktree/local.json` cannot reach another worktree's config.
+ */
+export function ownedBranch(s: Owner): StoreRecord {
+  const record = s.configStore;
   if (
+    !record ||
     record.kind !== "doppler" ||
     !slug.test(record.project) ||
-    !new RegExp(`^${record.root}_wt_[a-z0-9_]+_[0-9a-f]{8}$`).test(
-      record.config,
-    )
+    !slug.test(record.root) ||
+    record.config !==
+      branchName(
+        { kind: "doppler", project: record.project, config: record.root },
+        root,
+        s.id,
+      )
   )
     throw new Error("Refusing a Doppler config this worktree did not create.");
+  return record;
 }
 
 /** The values the frontend needs for this worktree's local backend. */
@@ -91,76 +121,106 @@ export function frontendValues(s: BackendState): Record<string, string> {
 const convexWritten =
   /^(?:CONVEX_DEPLOYMENT|[A-Z0-9_]*CONVEX_(?:URL|SITE_URL))$/;
 
+const readText = (file: string) =>
+  fs.readFile(file, "utf8").catch((error) => {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  });
+
 /**
  * With `envFiles: false`, removes the backend `.env.local` when it holds only
- * what the Convex CLI writes there. A file with any other key is left alone.
+ * what the Convex CLI writes there, and the `.gitignore` it creates for it. A
+ * file with any other key, or a tracked or edited `.gitignore`, is left alone.
  */
 export async function removeConvexEnvFile() {
   if (layout.envFiles !== false) return;
   const file = path.join(backend, ".env.local");
   await safe(file);
-  const content = await fs.readFile(file, "utf8").catch((error) => {
-    if (error.code === "ENOENT") return null;
-    throw error;
-  });
-  if (content === null) return;
-  const keys = content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("#"))
-    .map((line) => /^(?:export\s+)?([A-Za-z0-9_]+)\s*=/.exec(line)?.[1] ?? "");
-  if (keys.every((key) => convexWritten.test(key)))
-    await fs.rm(file, { force: true });
+  const content = await readText(file);
+  if (content !== null) {
+    const keys = content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#"))
+      .map(
+        (line) => /^(?:export\s+)?([A-Za-z0-9_]+)\s*=/.exec(line)?.[1] ?? "",
+      );
+    if (keys.every((key) => convexWritten.test(key)))
+      await fs.rm(file, { force: true });
+  }
+  await removeConvexGitignore();
 }
 
-// Doppler must never point a child at a cloud deployment, whatever the
-// inherited config holds. These keys are removed after Doppler injects values.
-const remoteConvexKeys = [
-  "CONVEX_DEPLOY_KEY",
-  "CONVEX_DEPLOYMENT_TOKEN",
-  "CONVEX_SELF_HOSTED_URL",
-  "CONVEX_SELF_HOSTED_ADMIN_KEY",
-  "CONVEX_URL",
-  "CONVEX_SITE_URL",
-];
+// When it writes `.env.local` and finds no `.gitignore` beside it, the Convex
+// CLI creates one that ignores only that file.
+async function removeConvexGitignore() {
+  const file = path.join(backend, ".gitignore");
+  await safe(file);
+  const content = await readText(file);
+  if (content === null || content.trim() !== ".env.local") return;
+  // A committed `.gitignore` is the project's own, whatever it holds.
+  const tracked = spawnSync("git", ["ls-files", "--error-unmatch", file], {
+    cwd: backend,
+    stdio: "ignore",
+  });
+  if (tracked.status !== 0) await fs.rm(file, { force: true });
+}
+
+// Strips every Convex key Doppler injects, as `childEnv` does for the parent
+// environment, except those the branch config sets for this worktree; then
+// restores the isolated values and replaces itself with the command.
+const stripConvex = (keep: string[]) =>
+  `for key in $(env | sed -n 's/^\\(\\(NEXT_PUBLIC_\\)\\{0,1\\}CONVEX_[A-Za-z0-9_]*\\)=.*/\\1/p'); do ` +
+  `case " ${keep.join(" ")} " in *" $key "*) ;; *) unset "$key" ;; esac; done; ` +
+  `exec env "$@"`;
 
 /**
  * Wraps `command` in `doppler run` for the worktree's branch config. Doppler
- * runs with the developer's real HOME (its login lives there); `env` then
- * restores the isolated values in `isolated`, which take precedence over
- * anything Doppler injects.
+ * runs with the developer's real HOME (its login lives there) and writes no
+ * fallback copy of the secrets to disk. `isolated` values then take precedence
+ * over anything Doppler injects.
  */
 export function wrap(
-  record: StoreRecord | undefined,
+  s: BackendState,
   command: string[],
   isolated: Record<string, string>,
 ) {
-  if (!record) return command;
-  assertOwnedBranch(record);
+  if (!s.configStore) return command;
+  const record = ownedBranch(s);
+  const keep = Object.keys(frontendValues(s)).filter((key) =>
+    /^(?:NEXT_PUBLIC_)?CONVEX_/.test(key),
+  );
   return [
     "doppler",
     "run",
+    "--no-fallback",
     "--project",
     record.project,
     "--config",
     record.config,
     "--",
-    "env",
-    ...remoteConvexKeys.flatMap((key) => ["-u", key]),
+    "sh",
+    "-c",
+    stripConvex(keep),
+    "sh",
     ...Object.entries(isolated).map(([key, value]) => `${key}=${value}`),
     ...command,
   ];
 }
 
 function doppler(args: string[], input?: string) {
-  return new Promise<{ code: number | null; output: string }>(
+  return new Promise<{ code: number | null; stdout: string; output: string }>(
     (resolve, reject) => {
       const child = spawn("doppler", args, {
         stdio: ["pipe", "pipe", "pipe"],
         env: process.env,
       });
-      let output = "";
-      child.stdout.on("data", (d) => (output += d));
+      let stdout = "",
+        output = "";
+      child.stdout.on("data", (d) => {
+        stdout += d;
+        output += d;
+      });
       child.stderr.on("data", (d) => (output += d));
       child.once("error", (error: NodeJS.ErrnoException) =>
         reject(
@@ -173,7 +233,7 @@ function doppler(args: string[], input?: string) {
       );
       child.stdin.on("error", () => {});
       child.stdin.end(input);
-      child.once("exit", (code) => resolve({ code, output }));
+      child.once("exit", (code) => resolve({ code, stdout, output }));
     },
   );
 }
@@ -189,21 +249,53 @@ async function must(args: string[], what: string, input?: string) {
 
 // `configs get` fails both for a missing config and for a missing login; only
 // the first may be treated as absent.
-async function exists(record: StoreRecord) {
+async function exists(project: string, config: string) {
   const { code, output } = await doppler([
     "configs",
     "get",
     "--project",
-    record.project,
+    project,
     "--config",
-    record.config,
+    config,
     "--json",
   ]);
   if (code === 0) return true;
   if (/could not find|not found/i.test(output)) return false;
   throw new Error(
-    `Doppler could not read config ${record.config} (exit ${code}). Run \`doppler login\` and check access to the project.`,
+    `Doppler could not read config ${config} (exit ${code}). Run \`doppler login\` and check access to the project.`,
   );
+}
+
+// Resolved values of a config. Only stdout is parsed, so a notice on stderr
+// cannot break it, and a parse failure never quotes what it read.
+async function download(project: string, config: string) {
+  const { code, stdout } = await doppler([
+    "secrets",
+    "download",
+    "--no-file",
+    "--format",
+    "json",
+    "--project",
+    project,
+    "--config",
+    config,
+  ]);
+  if (code !== 0)
+    throw new Error(
+      `Doppler could not read config ${config} (exit ${code}). Run \`doppler login\` and check access to the project.`,
+    );
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch {
+    throw new Error(`Doppler returned unreadable values for ${config}.`);
+  }
+  if (!object(parsed))
+    throw new Error(`Doppler returned unreadable values for ${config}.`);
+  const values: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed))
+    if (typeof value === "string") values[key] = value;
+  return values;
 }
 
 /**
@@ -211,13 +303,13 @@ async function exists(record: StoreRecord) {
  * (non-secret, via argv) and `secrets` (via stdin, one key per call).
  */
 export async function writeBranch(
-  record: StoreRecord,
+  s: Owner,
   values: Record<string, string>,
   secrets: Record<string, string> = {},
 ) {
-  assertOwnedBranch(record);
+  const record = ownedBranch(s);
   const scope = ["--project", record.project, "--config", record.config];
-  if (!(await exists(record)))
+  if (!(await exists(record.project, record.config)))
     await must(
       [
         "configs",
@@ -250,40 +342,39 @@ export async function writeBranch(
 }
 
 /** Reads the branch config's resolved values (inherited ones included). */
-export async function readBranch(
-  record: StoreRecord,
-): Promise<Record<string, string>> {
-  assertOwnedBranch(record);
-  const { code, output } = await doppler([
-    "secrets",
-    "download",
-    "--no-file",
-    "--format",
-    "json",
-    "--project",
-    record.project,
-    "--config",
-    record.config,
-  ]);
-  if (code !== 0)
-    throw new Error(
-      `Doppler could not read config ${record.config} (exit ${code}).`,
-    );
-  const values: Record<string, string> = {};
-  for (const [key, value] of Object.entries(
-    JSON.parse(output) as Record<string, unknown>,
-  ))
-    if (typeof value === "string") values[key] = value;
-  return values;
+export async function readBranch(s: Owner): Promise<Record<string, string>> {
+  const record = ownedBranch(s);
+  return await download(record.project, record.config);
+}
+
+/**
+ * Of `keys`, those the branch config does not hold as its own: absent, or
+ * only inherited from its root. All of them when the config does not exist.
+ */
+export async function missingSecrets(s: Owner, keys: string[]) {
+  const record = ownedBranch(s);
+  if (!keys.length) return [];
+  if (!(await exists(record.project, record.config))) return keys;
+  const branch = await download(record.project, record.config);
+  const inherited = await download(record.project, record.root);
+  return keys.filter((key) => !branch[key] || branch[key] === inherited[key]);
 }
 
 /** Deletes the worktree's branch config. A config that is already gone is fine. */
-export async function deleteBranch(record: StoreRecord) {
-  assertOwnedBranch(record);
-  const scope = ["--project", record.project, "--config", record.config];
-  if (!(await exists(record))) return;
+export async function deleteBranch(s: Owner) {
+  const record = ownedBranch(s);
+  if (!(await exists(record.project, record.config))) return;
   await must(
-    ["configs", "delete", ...scope, "--yes", "--silent"],
+    [
+      "configs",
+      "delete",
+      "--project",
+      record.project,
+      "--config",
+      record.config,
+      "--yes",
+      "--silent",
+    ],
     `delete config ${record.config}`,
   );
 }
