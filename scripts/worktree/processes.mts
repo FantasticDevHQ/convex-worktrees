@@ -98,14 +98,21 @@ export async function run(
 
 export async function ownedRunning(s: WorktreeState | null) {
   if (!s) return false;
-  const runtime = await read<Runtime | null>(path.join(dir, "runtime.json"), null);
-  if (!runtime) return false;
-  // An exiting supervisor releases its memory before it becomes a zombie. In
-  // that short window Linux ps shows a running process with an empty command
-  // line ("[MainThread]"), which matches no owner. Look again until the process
-  // is gone, is a zombie, or still shows a foreign command after the grace.
+  const runtimeFile = path.join(dir, "runtime.json");
+  // A supervisor's own stop() removes runtime.json before it exits, so a
+  // missing file, or one naming a new PID, means the recorded supervisor is
+  // gone. The process can still outlive the file briefly: it releases its
+  // memory before it becomes a zombie, and in that window Linux ps shows a
+  // running process with an empty command line ("[MainThread]") that matches
+  // no owner. Look again until the process is gone, is a zombie, or still
+  // shows a foreign command after the grace.
+  let recorded: number | undefined;
   const deadline = Date.now() + ownershipGraceMs;
   for (;;) {
+    const runtime = await read<Runtime | null>(runtimeFile, null);
+    if (!runtime || (recorded !== undefined && runtime.pid !== recorded))
+      return false;
+    recorded = runtime.pid;
     if (!alive(runtime.pid)) return false;
     let command: string;
     try {
@@ -120,8 +127,12 @@ export async function ownedRunning(s: WorktreeState | null) {
     }
     // A supervisor can exit before its parent reaps it. Never signal a zombie.
     if (/^\s*Z/.test(command)) return false;
-    if (command.includes(script) && command.includes(`--owner=${s.id}`)) return runtime;
-    if (Date.now() >= deadline) throw new Error("Recorded PID belongs to another process; refusing to signal it.");
+    if (command.includes(script) && command.includes(`--owner=${s.id}`))
+      return runtime;
+    if (Date.now() >= deadline)
+      throw new Error(
+        "Recorded PID belongs to another process; refusing to signal it.",
+      );
     await sleep(50);
   }
 }
