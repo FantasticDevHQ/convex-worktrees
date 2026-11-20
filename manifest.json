@@ -30,11 +30,11 @@
     },
     "commands.mts": {
       "path": "scripts/worktree/commands.mts",
-      "sha256": "519995283e57658145eb2a4bb3ef83527820f49be82fde38207f9200ed0a021e"
+      "sha256": "8a3acc2b7bb7e97dda45a29e7d9f196174e21d56aad226ef9281ea0203703374"
     },
     "config.mts": {
       "path": "scripts/worktree/config.mts",
-      "sha256": "cc4dba649b5ea5ab980ebf4aaabd2d8f1e5087f2f394d7fb0262c1b282938d39"
+      "sha256": "87d30021768caea0bbc2cce2ff04da8b15e8d3b735c94314c535f31f3bcb0890"
     },
     "context.mts": {
       "path": "scripts/worktree/context.mts",
@@ -50,11 +50,11 @@
     },
     "lifecycle.mts": {
       "path": "scripts/worktree/lifecycle.mts",
-      "sha256": "f5bd843e71371fe8d32c82845806d96c89061764555342893d169004aeec13d7"
+      "sha256": "69230688ccb06df35e5a14547bd8308b4af23030eeb94f4f40727184d9a76a16"
     },
     "processes.mts": {
       "path": "scripts/worktree/processes.mts",
-      "sha256": "e0ecd005aa47a5d39be348274f05528285893a14fefeb314d5d36b1e9e5b3939"
+      "sha256": "37d1f6734665b46d29e3d6e12dae827fb681249704a0a63bea7d1d78d8a17560"
     },
     "registry.mts": {
       "path": "scripts/worktree/registry.mts",
@@ -86,11 +86,11 @@
     },
     "hooks.mts": {
       "path": "scripts/worktree/hooks.mts",
-      "sha256": "32d4c9e97681c7e9c4a99593f28c82ba94004542ce7e437dec856b350fa00d10"
+      "sha256": "a32d9afb8194368f6b5431bfa37ebb50bd535e310fa36fa27734e27e87c3ca4a"
     },
     "PROFILES.md": {
       "path": "scripts/worktree/PROFILES.md",
-      "sha256": "c7c2b0aac2930198aa288b6ce93748053f956c3b29d8a965dad58663d0f36582"
+      "sha256": "1c1d9e84ac9bea1988f4c0ff1f5e341e1f47a8f1afc0d727cb3fe8ee35c8f2c6"
     },
     "services.mts": {
       "path": "scripts/worktree/services.mts",
@@ -106,7 +106,15 @@
     },
     "types.mts": {
       "path": "scripts/worktree/types.mts",
-      "sha256": "68a418bf6e972ddc8e61df3611a057e13a648f0fb185b834f9a34ff560b269d8"
+      "sha256": "b4a65216fcda43e0d55987f9e3940a9798333f0772945d620f7ce21f1c44530d"
+    },
+    "config-store.mts": {
+      "path": "scripts/worktree/config-store.mts",
+      "sha256": "faf0eb86188f97cee5f2c00b9711114693056f2fb716bef106d772a964f27e19"
+    },
+    "config-store.test.mts": {
+      "path": "scripts/worktree/config-store.test.mts",
+      "sha256": "995585e14c0ad34864ebab164d45d40d435bdd0f88375b6f6182e961759c10bc"
     }
   },
   "formatVersion": 1

@@ -15,6 +15,7 @@ export interface BackendState extends Identity {
   mode?: "convex";
   ports: Ports;
   deployment: string | null;
+  configStore?: StoreRecord;
 }
 
 export interface BackendFreeState extends Identity {
@@ -40,14 +41,32 @@ export interface Service {
   command: string[];
   readiness: { command: string[]; timeoutMs: number };
 }
+/** A profile's `configStore`: the Doppler project and root config to branch from. */
+export interface ConfigStore {
+  kind: "doppler";
+  project: string;
+  config: string;
+  /** Required to branch from a staging or production config. */
+  allowProtected?: boolean;
+}
+/** The branch config a worktree owns, recorded in its state. */
+export interface StoreRecord {
+  kind: "doppler";
+  project: string;
+  root: string;
+  config: string;
+  seeded?: boolean;
+}
 export interface Profile {
   hooks?: Partial<Record<Phase, Hook[]>>;
   services?: Record<string, Service>;
+  configStore?: ConfigStore;
 }
 export interface SelectedProfile {
   name: string;
   hooks: Partial<Record<Phase, Hook[]>>;
   services: Record<string, Service>;
+  configStore?: ConfigStore;
 }
 export interface Layout {
   backend?: string;
@@ -58,6 +77,7 @@ export interface Layout {
   secretEnv?: string[];
   siteUrlEnv?: string[];
   bootstrapMissingEnv?: string[];
+  envFiles?: boolean;
   profiles?: Record<string, Profile>;
 }
 export interface ServiceRecord {

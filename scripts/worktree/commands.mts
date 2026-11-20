@@ -4,7 +4,8 @@ import { spawn } from "node:child_process";
 
 import { root, frontend, stateFile, sleep, layout } from "./context.mts";
 import { projectLock } from "./registry.mts";
-import { state, childEnv } from "./config.mts";
+import { state, spawnSpec } from "./config.mts";
+import { frontendValues } from "./config-store.mts";
 import { serviceStatus } from "./services.mts";
 import { ownedRunning, serve, start, stopOnly } from "./processes.mts";
 import { setup, teardown, prune } from "./lifecycle.mts";
@@ -19,7 +20,13 @@ export async function main() {
     await state();
     throw new Error("No development services are configured with convex:false. Run development commands directly in this checkout.");
   }
-  if (command === "status") {
+  if (command === "env") {
+    // The worktree's frontend values (ports, URLs, deployment name; no secrets),
+    // for tools that start their own processes instead of reading a file.
+    const s = await state();
+    if (s.mode === "none") throw new Error("No backend configured with convex:false.");
+    console.log(JSON.stringify(frontendValues(s)));
+  } else if (command === "status") {
     const s = await state();
     const running = Boolean(await ownedRunning(s));
     const status = await serviceStatus(s);
@@ -61,21 +68,23 @@ export async function main() {
   } else if (command === "frontend") {
     const s = await state();
     if (s.mode === "none") throw new Error("No frontend configured with convex:false.");
-    const child = spawn(
-      process.execPath,
+    const spec = spawnSpec(
+      s,
       [
+        process.execPath,
         packageBin("next", "next", [frontend, root]),
         "dev",
         "--port",
         String(s.ports.web),
       ],
-      { cwd: frontend, env: childEnv(s), stdio: "inherit" },
+      true,
     );
+    const child = spawn(spec.command[0], spec.command.slice(1), { cwd: frontend, env: spec.env, stdio: "inherit" });
     process.on("SIGTERM", () => child.kill("SIGINT"));
     process.on("SIGINT", () => child.kill("SIGINT"));
     child.on("exit", (code) => process.exit(code ?? 1));
   } else
     throw new Error(
-      "Run worktree:setup first. Commands: setup, start, stop, teardown, cleanup --yes, prune, dev, backend, frontend",
+      "Run worktree:setup first. Commands: setup, start, stop, teardown, cleanup --yes, prune, dev, backend, frontend, env",
     );
 }

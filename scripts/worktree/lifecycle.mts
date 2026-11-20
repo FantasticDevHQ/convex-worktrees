@@ -30,6 +30,7 @@ import { run, ownedRunning, stopOnly } from "./processes.mts";
 import { refreshCheckout } from "./freshness.mts";
 
 import { validateProfiles, runHooks } from "./hooks.mts";
+import { branchName, frontendValues, writeBranch, readBranch, missingSecrets, deleteBranch } from "./config-store.mts";
 
 export async function setup(prepareOnly: boolean) {
   const profile = validateProfiles();
@@ -62,6 +63,15 @@ export async function setup(prepareOnly: boolean) {
   if (s) {
     s = await state() as BackendState;
     await checkConfig(s);
+  }
+  const store = profile?.configStore;
+  if (s?.configStore && (!store || store.project !== s.configStore.project || store.config !== s.configStore.root))
+    throw new Error(`This worktree keeps its settings in Doppler ${s.configStore.project}/${s.configStore.config}. Run setup with the profile that declares it, or cleanup --yes first.`);
+  if (store) {
+    // The import file holds secrets only while an import runs; drop any copy
+    // an interrupted setup left behind.
+    await safe(path.join(dir, "backend.env"));
+    await fs.rm(path.join(dir, "backend.env"), { force: true });
   }
   // Serialize both per-checkout preparation and cross-repository allocations.
   s = await locked(async (leases) => {
@@ -97,6 +107,11 @@ export async function setup(prepareOnly: boolean) {
       };
       await json(stateFile, s);
     }
+    // Record the branch config before creating it, so cleanup can find it.
+    if (store && !s.configStore) {
+      s.configStore = { kind: store.kind, project: store.project, root: store.config, config: branchName(store, root, s.id) };
+      await json(stateFile, s);
+    }
     leases[root] = { id: s.id, ports: s.ports };
     const cloud = `http://127.0.0.1:${s.ports.cloud}`,
       site = `http://127.0.0.1:${s.ports.site}`;
@@ -104,6 +119,7 @@ export async function setup(prepareOnly: boolean) {
     await upsert(path.join(dir, "convex.env"), {
       CONVEX_DEPLOYMENT: selection,
     });
+    if (layout.envFiles !== false) {
     await upsert(
       frontendEnv,
       {
@@ -133,6 +149,7 @@ export async function setup(prepareOnly: boolean) {
         "CONVEX_SELF_HOSTED_ADMIN_KEY",
       ],
     );
+    }
     const backendEnv = path.join(dir, "backend.env");
     await safe(backendEnv);
     if (!existsSync(backendEnv)) {
@@ -141,16 +158,29 @@ export async function setup(prepareOnly: boolean) {
         {},
       );
       const values = { ...config.env };
+      // With a config store the generated secrets and site URLs live in the
+      // branch config; they are added to the import file just before import.
+      if (!s.configStore) {
       for (const key of config.secretEnv || [])
         values[key] = randomBytes(32).toString("hex");
       for (const key of config.siteUrlEnv || [])
         values[key] = `http://localhost:${s.ports.web}`;
+      }
       await upsert(backendEnv, values);
     }
     return s;
   });
   if (!s) throw new Error("Worktree allocation did not return state.");
   const prepared = s;
+  if (prepared.configStore) {
+    const siteUrls = Object.fromEntries((layout.siteUrlEnv || []).map((key) => [key, `http://localhost:${prepared.ports.web}`]));
+    // Generate each secret the branch does not hold as its own, so a removed
+    // secret is replaced rather than silently inherited from the root config.
+    const generate = prepared.configStore.seeded ? await missingSecrets(prepared, layout.secretEnv || []) : layout.secretEnv || [];
+    await writeBranch(prepared, { ...frontendValues(prepared), ...siteUrls }, Object.fromEntries(generate.map((key) => [key, randomBytes(32).toString("hex")])));
+    prepared.configStore.seeded = true;
+    await json(stateFile, prepared);
+  }
   await runHooks(profile, "afterPrepare", prepared);
   if (!prepareOnly)
     await projectLock(async () => {
@@ -176,13 +206,25 @@ export async function setup(prepareOnly: boolean) {
         await upsert(path.join(dir, "convex.env"), {
           CONVEX_DEPLOYMENT: `anonymous:${prepared.deployment}`,
         });
+        if (layout.envFiles !== false) {
         await upsert(frontendEnv, {
           CONVEX_DEPLOYMENT: `anonymous:${prepared.deployment}`,
         });
+        }
+        if (prepared.configStore)
+          await writeBranch(prepared, { CONVEX_DEPLOYMENT: `anonymous:${prepared.deployment}` });
       }
       await checkConfig(prepared, true);
+      if (prepared.configStore) {
+        // The worktree's own keys come from its branch config, over defaults.
+        const stored = await readBranch(prepared);
+        const keys = [...(layout.secretEnv || []), ...(layout.siteUrlEnv || []), ...Object.keys(layout.env || {})];
+        await safe(path.join(dir, "backend.env"));
+        await upsert(path.join(dir, "backend.env"), Object.fromEntries(keys.filter((key) => stored[key]).map((key) => [key, stored[key]])));
+      }
       await runHooks(profile, "beforeImport", prepared);
       await safe(path.join(dir, "backend.env"));
+      try {
       await run(
         [
           cli(),
@@ -195,6 +237,10 @@ export async function setup(prepareOnly: boolean) {
         ],
         prepared,
       );
+      } finally {
+        // Doppler holds these values; the import file exists only for the import.
+        if (prepared.configStore) await fs.rm(path.join(dir, "backend.env"), { force: true });
+      }
       await run(convexArgs(prepared, ["--once"]), prepared);
       await checkConfig(prepared, true);
       await runHooks(profile, "afterPush", prepared);
@@ -238,6 +284,8 @@ export async function teardown(cleanup = false) {
   }
   if (cleanup) await checkConfig(s);
   await stopOnly(s);
+  // Teardown keeps the branch config; cleanup deletes only this worktree's.
+  if (cleanup && s.configStore) await deleteBranch(s);
   await locked(async (leases) => {
     if (leases[root]?.id === s.id) delete leases[root];
     if (cleanup) {
@@ -246,6 +294,7 @@ export async function teardown(cleanup = false) {
         recursive: true,
         force: true,
       });
+      if (layout.envFiles !== false) {
       await upsert(frontendEnv, {}, [
         "CONVEX_DEPLOYMENT",
         "CONVEX_URL",
@@ -256,6 +305,7 @@ export async function teardown(cleanup = false) {
         "PORT",
       ]);
       await upsert(path.join(backend, ".env.local"), {}, ["CONVEX_DEPLOYMENT"]);
+      }
       await safe(dir);
       await fs.rm(dir, { recursive: true, force: true });
     }

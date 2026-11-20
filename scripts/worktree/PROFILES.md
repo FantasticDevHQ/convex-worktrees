@@ -114,3 +114,65 @@ The fixture tests in `services.test.mts` provide a runnable generic two-worktree
 demonstration: delayed readiness, distinct contexts, repeated start, one-worktree
 stop, restart, teardown, startup timeout and runtime failure. They use backend-free
 fixtures; the toolkit itself continues to create no backend or frontend.
+
+## Config store (Doppler)
+
+A profile can keep each checkout's settings in a Doppler branch config instead
+of `.env.local` files. It is opt-in; without `configStore` nothing changes.
+
+```json
+{
+  "envFiles": false,
+  "profiles": {
+    "doppler": {
+      "configStore": { "kind": "doppler", "project": "my-app", "config": "dev" }
+    }
+  }
+}
+```
+
+`kind` must be `doppler`. `project` and `config` are lowercase slugs, and
+`config` is a root config without `_`. A staging or production root (`stg`,
+`prd`, `staging`, `prod`, `production`) is refused unless the store also sets
+`"allowProtected": true`. Doppler needs the CLI on PATH and a
+`doppler login` with access to the project; without one, setup stops and prints
+no values. No other credential is read.
+
+`setup --profile doppler` records, in `.worktree/local.json`, a branch config
+named `<config>_wt_<checkout>_<id8>`: the root config, the checkout directory
+name as a slug, and the first eight hex digits of the worktree ID. It creates it
+in the root config's environment, so it inherits the shared values. It writes
+the checkout's ports, URLs, deployment name and `siteUrlEnv` values there. Each
+`secretEnv` value is generated once and sent to Doppler on stdin, never in argv
+or output; repeated setup keeps it, and generates it again if the branch no
+longer holds its own value rather than inheriting the root's. Just before
+`convex env set`, the `secretEnv`, `siteUrlEnv` and `env` keys are read from the
+branch config into `.worktree/backend.env`, over the layout defaults; the file
+is deleted after the import. It is short-lived: if setup is killed during the
+import, the next setup and `cleanup --yes` remove it. Doppler values are parsed
+from stdout only and never quoted in an error. Hooks see `configStore` (`kind`, `project`, `config`) in
+`WORKTREE_CONTEXT`.
+
+The backend and frontend run under `doppler run --no-fallback` for the branch
+config, so Doppler keeps no encrypted copy of the secrets on disk and a run
+fails rather than using stale values when Doppler is unreachable. Doppler runs
+with the developer's real HOME, where its login lives; the children still get
+the isolated HOME, cache and anonymous agent mode. Every `CONVEX_*` and
+`NEXT_PUBLIC_CONVEX_*` key Doppler injects is removed, as for the parent
+environment, except those the branch config sets for the checkout, so an
+inherited remote Convex key never reaches a child.
+
+Teardown keeps the branch config. `cleanup --yes` deletes it, and only the exact
+name this checkout's directory and identity produce, so a copied or edited
+`.worktree/local.json` cannot reach another checkout's config; a missing config
+is not an error.
+Setup refuses to change or drop the store of an existing checkout; clean up
+first.
+
+With layout `"envFiles": false` the toolkit writes no `.env.local`, with or
+without a store. Children get the frontend values directly, and the backend
+`.env.local` that the Convex CLI writes is removed when it holds only Convex
+keys, as is the `.gitignore` it creates for it when that file is untracked and
+ignores nothing else. No `.env*` file at all needs both `envFiles: false` and a
+store: without a store, generated secrets stay in `.worktree/backend.env`. `node scripts/worktree/cli.mts env` prints the frontend values as JSON.
+`config-store.test.mts` exercises all of this against a fake `doppler` on PATH.

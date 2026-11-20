@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { root, backend, frontend, dir, layout } from "./context.mts";
 import { childEnv } from "./config.mts";
+import { validateStore } from "./config-store.mts";
 
 const phases: string[] = ["afterPrepare", "beforeImport", "afterPush", "beforeStart"];
 const object = (value: unknown): value is Record<string, any> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -11,7 +12,8 @@ export function validateProfiles(config: Layout = layout, argv = process.argv.sl
   const profiles = config.profiles ?? {};
   if (!object(profiles)) fail("profiles must be an object");
   for (const [name, profile] of Object.entries(profiles)) {
-    if (!object(profile) || Object.keys(profile).some((key) => !["hooks", "services"].includes(key))) fail(`invalid profile ${name}`);
+    if (!object(profile) || Object.keys(profile).some((key) => !["hooks", "services", "configStore"].includes(key))) fail(`invalid profile ${name}`);
+    if (profile.configStore !== undefined) validateStore(profile.configStore, name);
     const services = profile.services ?? {};
     if (!object(services)) fail(`invalid services in ${name}`);
     const command = (args: unknown) => Array.isArray(args) && args.length && args.every((a) => typeof a === "string" && !a.includes("\0")) && args[0].trim();
@@ -39,12 +41,14 @@ export function validateProfiles(config: Layout = layout, argv = process.argv.sl
   if (!indices.length) return null;
   const name = argv[indices[0] + 1];
   if (!name || !Object.hasOwn(profiles, name)) fail(`unknown profile ${name ?? ""}`);
-  return { name, hooks: profiles[name].hooks ?? {}, services: profiles[name].services ?? {} };
+  const store = profiles[name].configStore;
+  return { name, hooks: profiles[name].hooks ?? {}, services: profiles[name].services ?? {}, ...(store ? { configStore: validateStore(store, name) } : {}) };
 }
 
 export function extensionEnv(profile: SelectedProfile, phase: Phase | "service", s: WorktreeState) {
   const context = { version: 1, profile: profile.name, phase, id: s.id, root, backend, frontend,
-    stateDirectory: dir, environmentFile: path.join(dir, "backend.env"), ports: s.ports ?? {} };
+    stateDirectory: dir, environmentFile: path.join(dir, "backend.env"), ports: s.ports ?? {},
+    ...(s.mode !== "none" && s.configStore ? { configStore: { kind: s.configStore.kind, project: s.configStore.project, config: s.configStore.config } } : {}) };
   return { ...(s.mode !== "none" ? childEnv(s) : process.env), WORKTREE_CONTEXT: JSON.stringify(context) };
 }
 
