@@ -15,7 +15,7 @@ UI changes: No
 Validator regression tests passed: https://github.com/FantasticDevHQ/convex-worktrees/actions/runs/123
 ## Agent
 - Agent: Codex
-- Session/thread ID: fixture-session-123
+- Session/thread ID: 01a1862e-bdbc-7722-9688-8334e29f6c2f
 `;
 
 test("accepts conventional types, optional scopes and breaking-change markers", () => {
@@ -44,15 +44,26 @@ test("accepts conventional types, optional scopes and breaking-change markers", 
   }
 });
 
-test("rejects inconsistent titles and missing or misplaced ticket IDs", () => {
+test("the ticket ID in the title is optional", () => {
+  for (const valid of [
+    "ci: enforce PR standards",
+    "ci(github): enforce PR standards",
+    "feat!: require authenticated requests",
+  ])
+    assert.deepEqual(
+      validatePullRequest({ title: valid, body: body.replace("Refs FANT-65", "No ticket: tooling bootstrap") }),
+      [],
+      valid,
+    );
+});
+
+test("rejects titles that are not conventional commits", () => {
   for (const invalid of [
     "Enforce PR standards",
-    "ci: enforce FANT-65 PR standards",
-    "ci: FANT-0 enforce PR standards",
     "CI: FANT-65 enforce PR standards",
     "other: FANT-65 enforce PR standards",
-    "ci: FANT-65",
-    "ci: fant-65 enforce PR standards",
+    "ci:",
+    "ci:enforce",
   ]) {
     assert.ok(validatePullRequest({ title: invalid, body }).length, invalid);
   }
@@ -146,7 +157,7 @@ test("handles absent metadata without throwing", () => {
   assert.ok(validatePullRequest({}).length);
 });
 
-test("requires explicit linkage intent for the title ticket in Summary", () => {
+test("requires a magic-word declaration for the title ticket in Summary", () => {
   for (const declaration of [
     "Fixes FANT-65",
     "Refs FANT-65",
@@ -159,12 +170,10 @@ test("requires explicit linkage intent for the title ticket in Summary", () => {
     "Towards FANT-65",
     "Related to FANT-65",
     "Refs https://linear.app/example/issue/FANT-65/require-pr-standards",
+    "Fixes FANT-64, FANT-65 and FANT-66",
   ]) {
     assert.deepEqual(
-      validatePullRequest({
-        title,
-        body: body.replace("Refs FANT-65", declaration),
-      }),
+      validatePullRequest({ title, body: body.replace("Refs FANT-65", declaration) }),
       [],
       declaration,
     );
@@ -177,26 +186,68 @@ test("requires explicit linkage intent for the title ticket in Summary", () => {
     "Fixes FANT-66",
     "Refs https://example.com/issue/FANT-65",
     "Refs https://linear.app/example/issue/FANT-66/wrong-ticket",
-    "Refs FANT-65\nFixes FANT-65",
+    "Refs FANT-65 soon",
     "`Refs FANT-65`",
     "<!-- Refs FANT-65 -->",
     "```text\nRefs FANT-65\n```",
+    "No ticket: n/a",
   ]) {
     assert.ok(
-      validatePullRequest({
-        title,
-        body: body.replace("Refs FANT-65", declaration),
-      }).some((error) => error.includes("linkage")),
+      validatePullRequest({ title, body: body.replace("Refs FANT-65", declaration) }).some((error) =>
+        error.includes("Summary"),
+      ),
       declaration,
     );
   }
-  assert.ok(
-    validatePullRequest({
-      title,
-      body: body
-        .replace("Refs FANT-65", "")
-        .replace("## What", "## What\nRefs FANT-65"),
-    }).some((error) => error.includes("linkage")),
+});
+
+test("a PR without tickets states No ticket with a reason", () => {
+  const noTitleTicket = "ci: enforce PR standards";
+  assert.deepEqual(
+    validatePullRequest({ title: noTitleTicket, body: body.replace("Refs FANT-65", "No ticket: repository bootstrap") }),
+    [],
+  );
+  for (const declaration of ["", "No ticket:", "No ticket: TBD"])
+    assert.ok(
+      validatePullRequest({ title: noTitleTicket, body: body.replace("Refs FANT-65", declaration) }).some((error) =>
+        error.includes("No ticket"),
+      ),
+      declaration,
+    );
+});
+
+const commit = (message: string, extra = {}) => ({ sha: "0123456789abcdef", message, ...extra });
+
+test("every non-merge commit needs a magic-word ticket or a No-ticket footer", () => {
+  assert.deepEqual(
+    validatePullRequest({ title, body }, [], [
+      commit("ci: add validator\n\nRefs FANT-65"),
+      commit("docs: typo\n\nNo-ticket: comment-only fix"),
+      commit("Merge branch 'main'", { merge: true }),
+    ]),
+    [],
+  );
+  for (const message of ["ci: add validator", "ci: add validator\n\nFANT-65", "ci: x\n\n#42", "ci: x\n\nFixes #0", "ci: x\n\nFixes https://github.com/o/r/pull/4", "ci: x\n\nNo-ticket:", "ci: x\n\nNo-ticket: TBD"])
+    assert.ok(
+      validatePullRequest({ title, body }, [], [commit(message)]).some((error) =>
+        error.includes("has no ticket or issue reference"),
+      ),
+      message,
+    );
+});
+
+test("Summary must declare every ticket referenced by commits", () => {
+  const errors = validatePullRequest({ title, body }, [], [
+    commit("ci: add validator\n\nRefs FANT-65"),
+    commit("ci: add enforcer\n\nFixes FANT-70"),
+  ]);
+  assert.ok(errors.some((error) => error.includes("missing FANT-70")), errors.join("\n"));
+  assert.deepEqual(
+    validatePullRequest({ title, body: body.replace("Refs FANT-65", "Refs FANT-65\nFixes FANT-70") }, [], [
+      commit("ci: add validator\n\nRefs FANT-65"),
+      commit("ci: add enforcer\n\nFixes FANT-70"),
+    ]),
+    [],
   );
 });
 
@@ -288,7 +339,7 @@ test("requires a UI declaration and uploaded screenshot or video for UI changes"
   );
   assert.deepEqual(validatePullRequest({ title, body: proof(uiBody) }), []);
   for (const path of [
-    "apps/web/src/App.tsx",
+    "packages/factory-console/src/App.tsx",
     "apps/web/styles.css",
     "apps/web/logo.svg",
   ]) {
@@ -299,22 +350,82 @@ test("requires a UI declaration and uploaded screenshot or video for UI changes"
     );
   }
   assert.deepEqual(
-    validatePullRequest({ title, body }, ["apps/web/tests/ui.test.tsx"]),
+    validatePullRequest({ title, body }, ["apps/factory/tests/ui.test.tsx"]),
     [],
   );
 });
 
-test("accepts CRLF and lone CR bodies including linkage after fenced examples", () => {
-  const withFences = body
-    .replace("Refs FANT-65", "```md\nRefs FANT-99\n```\nRefs FANT-65")
-    .replace(
-      /Validator regression tests passed:[^\n]*/,
-      "```text\n15 tests passed, 0 failed\n```",
-    );
-  for (const ending of ["\r\n", "\r"]) {
+for (const newline of ["\n", "\r\n", "\r"]) {
+  test(`valid and invalid metadata with ${JSON.stringify(newline)} line endings`, () => {
     assert.deepEqual(
-      validatePullRequest({ title, body: withFences.replace(/\n/g, ending) }),
+      validatePullRequest({ title, body: body.replaceAll("\n", newline) }),
       [],
     );
+    assert.ok(
+      validatePullRequest({
+        title: "invalid",
+        body: body.replaceAll("\n", newline),
+      }).length,
+    );
+  });
+}
+
+test("accepts a GitHub Actions artifact as UI video evidence", () => {
+  const uiBody = body.replace("UI changes: No", "UI changes: Yes");
+  const withVideo = (url: string) =>
+    uiBody.replace("## Agent", `- Video: ${url}\n## Agent`);
+  assert.deepEqual(
+    validatePullRequest({
+      title,
+      body: withVideo("https://github.com/acme/app/actions/runs/123456/artifacts/7890"),
+    }),
+    [],
+  );
+  for (const url of [
+    "https://github.com/acme/app/actions/runs/123456",
+    "https://example.com/acme/app/actions/runs/1/artifacts/2",
+    "https://github.com/acme/app/actions/runs/abc/artifacts/2",
+  ])
+    assert.ok(
+      validatePullRequest({ title, body: withVideo(url) }).some((error) =>
+        error.includes("UI changes require"),
+      ),
+      url,
+    );
+});
+
+test("outside contributors can reference GitHub issues instead of Linear tickets", () => {
+  const noTitleTicket = "fix(cli): handle missing config file";
+  for (const declaration of [
+    "Fixes #42",
+    "- Refs #42",
+    "Closes FantasticDevHQ/finch#42",
+    "Resolves https://github.com/FantasticDevHQ/finch/issues/42",
+    "Fixes #42, #43 and FANT-65",
+  ]) {
+    const summary = body.replace("Refs FANT-65", declaration);
+    const commits = [commit(`fix(cli): handle missing config\n\n${declaration}`)];
+    const errors = validatePullRequest({ title: noTitleTicket, body: summary }, [], commits);
+    assert.deepEqual(
+      errors.filter((error) => !error.includes("missing FANT-65")),
+      [],
+      declaration,
+    );
   }
+  for (const declaration of ["#42", "Fixes #0", "Fixes https://github.com/o/r/pull/42", "Fixes #42 later"])
+    assert.ok(
+      validatePullRequest({ title: noTitleTicket, body: body.replace("Refs FANT-65", declaration) }).some((error) =>
+        error.includes("No ticket"),
+      ),
+      declaration,
+    );
+});
+
+test("GitHub issue references do not replace required Linear declarations", () => {
+  const errors = validatePullRequest(
+    { title, body: body.replace("Refs FANT-65", "Fixes #42") },
+    [],
+    [commit("ci: add validator\n\nRefs FANT-65")],
+  );
+  assert.ok(errors.some((error) => error.includes("missing FANT-65")), errors.join("\n"));
 });

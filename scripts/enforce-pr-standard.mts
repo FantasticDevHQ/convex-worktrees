@@ -1,7 +1,9 @@
 // GitHub JSON responses are validated by the endpoint-specific consumers.
 export type GitHubApi = (method: string, path: string, data?: Record<string, unknown>) => Promise<any>;
+
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import type { Commit } from "./pr-standard.mts";
 import { validatePullRequest } from "./pr-standard.mts";
 
 const marker = "<!-- pr-standard -->";
@@ -17,9 +19,9 @@ export async function enforcePullRequestStandard({ api, number, runUrl }: { api:
       description,
       target_url: runUrl,
     });
-  await status("pending", "Checking PR title and required sections");
   try {
-    const files = [];
+    await status("pending", "Checking PR title, sections and commit ticket links");
+    const files: string[] = [];
     for (let page = 1; ; page++) {
       const batch = await api(
         "GET",
@@ -33,7 +35,27 @@ export async function enforcePullRequestStandard({ api, number, runUrl }: { api:
           "PR file listing reached GitHub's 3,000-file limit; split the PR before validation",
         );
     }
-    const errors = validatePullRequest(pr, files);
+    const commits: Commit[] = [];
+    for (let page = 1; ; page++) {
+      const batch = await api(
+        "GET",
+        `/pulls/${number}/commits?per_page=100&page=${page}`,
+      );
+      commits.push(
+        ...batch.map((item: { sha: string; commit?: { message?: string }; parents?: unknown[] }) => ({
+          sha: item.sha,
+          message: item.commit?.message ?? "",
+          merge: (item.parents?.length ?? 0) > 1,
+        })),
+      );
+      if (batch.length < 100) break;
+      // GitHub lists at most 250 commits for a PR. Do not silently skip any.
+      if (page === 3)
+        throw new Error(
+          "PR commit listing reached GitHub's 250-commit limit; split the PR before validation",
+        );
+    }
+    const errors = validatePullRequest(pr, files, commits);
     let previous;
     for (let page = 1; ; page++) {
       const comments = await api(
@@ -49,8 +71,8 @@ export async function enforcePullRequestStandard({ api, number, runUrl }: { api:
       if (previous || comments.length < 100) break;
     }
     const body = errors.length
-      ? `${marker}\n## PR standard failed\n\nThe PR metadata does not meet the standard. Correct these items:\n\n${errors.map((error) => `- ${error}`).join("\n")}\n\nEdit the PR title/description to rerun this check. See [the PR standard](https://github.com/FantasticDevHQ/convex-worktrees/blob/main/docs/pull-request-standard.md). Evidence must describe actual verification; reviewers assess whether it proves the change.\n\n[Check run](${runUrl})`
-      : `${marker}\n## PR standard passed\n\nThe title and Summary, What, Why, Evidence, and Agent sections meet the required format. UI changes include screenshot and/or video attachment references when required. Reviewers still assess correctness and evidence quality.\n\n[Check run](${runUrl})`;
+      ? `${marker}\n## PR standard failed\n\nThis PR is blocked until these items are corrected:\n\n${errors.map((error) => `- ${error}`).join("\n")}\n\nEdit the PR title/description, or reword and push commits, to rerun this check. See [the PR standard](https://github.com/FantasticDevHQ/convex-worktrees/blob/main/docs/pull-request-standard.md). Evidence must describe actual verification; reviewers assess whether it proves the change.\n\n[Check run](${runUrl})`
+      : `${marker}\n## PR standard passed\n\nThe title, the Summary, What, Why, Evidence, and Agent sections, and every commit's Linear reference meet the required format. UI changes include screenshot and/or video attachment references when required. Reviewers still assess correctness and evidence quality.\n\n[Check run](${runUrl})`;
     if (previous && previous.body !== body)
       await api("PATCH", `/issues/comments/${previous.id}`, { body });
     else if (!previous && errors.length)
@@ -58,15 +80,18 @@ export async function enforcePullRequestStandard({ api, number, runUrl }: { api:
     await status(
       errors.length ? "failure" : "success",
       errors.length
-        ? "Fix the PR title/description; see the bot comment"
-        : "PR title and required sections meet the standard",
+        ? "Fix the PR metadata or commits; see the bot comment"
+        : "PR title, sections and commits meet the standard",
     );
     return errors.length === 0;
   } catch (error) {
     try {
-      await status("failure", "PR standard check failed; see workflow run");
+      await status(
+        "failure",
+        "PR metadata validation failed; inspect the workflow log",
+      );
     } catch {
-      // Preserve the original API error if status publication is unavailable too.
+      /* Preserve the original API or validation failure. */
     }
     throw error;
   }
