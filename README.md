@@ -319,9 +319,27 @@ The optional real-backend integration test runs inside a consuming application, 
 
 The integration test deploys the app schema in two temporary worktrees, writes different probe records, verifies database isolation and restart persistence, tests busy-port refusal and checks sibling-safe teardown/cleanup. It exercises backends only; test your frontend separately if using the optional frontend adapter. Adapt the probe operations if your app's schema or auth needs another test strategy.
 
-## Working on this toolkit
+## Contributing
 
-This repository follows the same [PR standard](docs/pull-request-standard.md) and worktree lifecycle as the applications adopting it. Its own adapter sets `convex: false` and `frontend: false`, because the toolkit has no application backend or development server.
+Contributions are welcome. Read the
+[contributing guide](https://github.com/FantasticDevHQ/.github/blob/main/CONTRIBUTING.md)
+and [Code of Conduct](https://github.com/FantasticDevHQ/.github/blob/main/CODE_OF_CONDUCT.md),
+and report vulnerabilities privately as described in the
+[security policy](https://github.com/FantasticDevHQ/.github/blob/main/SECURITY.md).
+
+Source development needs Node.js 22.18+ and Git. npm, with the committed
+`package-lock.json`, installs the TypeScript compiler used for type checking;
+the runtime checks need no installed dependencies.
+
+```sh
+npm ci
+npm run check:all   # strict type check, then node scripts/check.mjs
+```
+
+Pull requests follow the [PR standard](docs/pull-request-standard.md). This
+repository uses the same worktree lifecycle as the applications adopting it.
+Its own adapter sets `convex: false` and `frontend: false`, because the toolkit
+has no application backend or development server. Work in an owned checkout:
 
 ```sh
 node scripts/worktree/cli.mts setup
@@ -335,7 +353,7 @@ In this backend-free mode, setup still fetches the selected base and records che
 
 The installer exports `scripts/worktree.config.example.json` as the adopting application's `scripts/worktree.config.json`. Those app defaults enable Convex; the toolkit's own backend-free adapter is never copied into an application.
 
-Run `npm ci`, `npm run typecheck` and `node scripts/check.mjs` before submitting a PR. Type checking covers the installer, worktree modules, PR tooling and tests with strict TypeScript settings. Only compiler verification needs development dependencies; installed toolkit commands and runtime tests remain dependency-free. The runtime check includes lifecycle, installer and PR-standard tests, then verifies the installed export and its tests in a path containing spaces. Test files run sequentially so independent fixture registries cannot race for the same host ports. Tests still exercise concurrent operations within each fixture. CI runs compiler verification and runtime checks on UbiCloud with Node 22.18 and 24. The PR metadata workflow executes trusted base-branch code; activation and required-status protection are separate concerns described in the PR standard.
+Run `npm ci`, `npm run typecheck` and `node scripts/check.mjs` (together `npm run check:all`) before submitting a PR. Type checking covers the installer, worktree modules, PR tooling and tests with strict TypeScript settings. Only compiler verification needs development dependencies; installed toolkit commands and runtime tests remain dependency-free. The runtime check includes lifecycle, installer and PR-standard tests, then verifies the installed export and its tests in a path containing spaces. Test files run sequentially so independent fixture registries cannot race for the same host ports. Tests still exercise concurrent operations within each fixture. CI runs compiler verification and runtime checks on UbiCloud with Node 22.18 and 24. The PR metadata workflow executes trusted base-branch code; activation and required-status protection are separate concerns described in the PR standard.
 
 ## Modules
 

@@ -12,4 +12,4 @@ Preserve anonymous backend isolation, explicit ports, ownership checks and safe 
 
 This repository uses its own backend-free adapter. Run `node scripts/worktree/cli.mts setup` from a clean checkout before work, and teardown/cleanup when finished. No Convex backend or frontend should be created for this repository itself. The installer must export the separate application defaults, with Convex enabled.
 
-Follow docs/pull-request-standard.md and the PR template. Include the owning ticket, required sections, actual agent/session identity and current evidence. The metadata workflow must execute trusted base code only. CI uses UbiCloud compute; verify actual runner identity before claiming an execution passed.
+Follow docs/pull-request-standard.md and the organization default PR template from FantasticDevHQ/.github. Reference the owning ticket (or a `No-ticket:` reason) on every commit and in Summary, and include the required sections, actual agent/session identity and current evidence. The metadata workflow must execute trusted base code only. CI uses UbiCloud compute; verify actual runner identity before claiming an execution passed.

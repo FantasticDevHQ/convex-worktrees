@@ -35,12 +35,19 @@ const valid = {
   head: { sha: "abc123" },
 };
 
-function fixture(pr: typeof valid, comments: { id: number; user: { login: string; type: string }; body: string }[] = []) {
+const goodCommits = [
+  { sha: "c1", commit: { message: "ci: validate metadata\n\nRefs FANT-65" }, parents: [{}] },
+];
+
+type Comment = { id: number; user: { login: string; type: string }; body: string };
+
+function fixture(pr: typeof valid, comments: Comment[] = [], commits = goodCommits) {
   const calls: { method: string; path: string; data?: Record<string, any> }[] = [];
   const api: GitHubApi = async (method, path, data) => {
     calls.push({ method, path, data });
     if (path === "/pulls/65") return pr;
     if (path.startsWith("/pulls/65/files?")) return [];
+    if (path.startsWith("/pulls/65/commits?")) return commits;
     if (path.startsWith("/issues/65/comments?")) return comments;
     return {};
   };
@@ -66,7 +73,25 @@ test("invalid PR fails its own head status and receives actionable feedback", as
   assert.equal(calls.at(-1)!.data!.state, "failure");
   const comment = calls.find((call) => call.path === "/issues/65/comments");
   assert.match(comment!.data!.body, /Summary/);
-  assert.match(comment!.data!.body, /TICKET-123/);
+  assert.match(comment!.data!.body, /type\(scope\): description/);
+});
+
+test("a commit without a Linear reference fails with actionable feedback", async () => {
+  const { calls, run } = fixture(valid, [], [
+    ...goodCommits,
+    { sha: "deadbeef", commit: { message: "ci: tweak" }, parents: [{}] },
+  ]);
+  assert.equal(await run(), false);
+  const comment = calls.find((call) => call.path === "/issues/65/comments");
+  assert.match(comment!.data!.body, /Commit deadbee "ci: tweak" has no ticket or issue reference/);
+});
+
+test("merge commits are exempt from the commit rule", async () => {
+  const { run } = fixture(valid, [], [
+    ...goodCommits,
+    { sha: "m1", commit: { message: "Merge branch 'main'" }, parents: [{}, {}] },
+  ]);
+  assert.equal(await run(), true);
 });
 
 test("corrected PR updates the bot comment and passes without comment spam", async () => {
@@ -111,11 +136,12 @@ test("valid PR needs no new comment; closed PRs receive no writes", async () => 
   assert.equal(closed.calls.length, 1);
 });
 
-test("API failure publishes a terminal failure status and rethrows the original error", async () => {
+test("API failure publishes failure instead of passing", async () => {
   const states: unknown[] = [];
   const api: GitHubApi = async (method, path, data) => {
     if (path === "/pulls/65") return valid;
     if (path.startsWith("/pulls/65/files?")) return [];
+    if (path.startsWith("/pulls/65/commits?")) return goodCommits;
     if (path.startsWith("/statuses/")) states.push(data!.state);
     if (path.includes("comments")) throw new Error("GitHub unavailable");
   };
@@ -130,26 +156,27 @@ test("API failure publishes a terminal failure status and rethrows the original 
   assert.deepEqual(states, ["pending", "failure"]);
 });
 
-test("a failed failure-status update does not mask the original API error", async () => {
-  const original = new Error("Comment listing failed");
-  const states: unknown[] = [];
-  const api: GitHubApi = async (method, path, data) => {
-    if (path === "/pulls/65") return valid;
-    if (path.startsWith("/pulls/65/files?")) return [];
-    if (path.startsWith("/statuses/")) {
-      states.push(data!.state);
-      if (data!.state === "failure")
-        throw new Error("Status publication failed");
-    }
-    if (path.includes("comments")) throw original;
-  };
-  await assert.rejects(
-    enforcePullRequestStandard({
-      api,
-      number: 65,
-      runUrl: "https://github.com/run",
-    }),
-    (error) => error === original,
-  );
-  assert.deepEqual(states, ["pending", "failure"]);
-});
+for (const statusFails of [false, true]) {
+  test(`API failures publish best-effort failure status and retain original error (${statusFails})`, async () => {
+    const original = new Error("file listing unavailable");
+    const statuses: unknown[] = [];
+    await assert.rejects(
+      enforcePullRequestStandard({
+        number: 65,
+        runUrl: "https://github.com/FantasticDevHQ/convex-worktrees/actions/runs/123",
+        api: async (method, path, data) => {
+          if (path === "/pulls/65") return valid;
+          if (path.includes("/files?")) throw original;
+          if (path.startsWith("/statuses/")) {
+            statuses.push(data!.state);
+            if (statusFails && data!.state === "failure")
+              throw new Error("status unavailable");
+          }
+          return {};
+        },
+      }),
+      (error) => error === original,
+    );
+    assert.deepEqual(statuses, ["pending", "failure"]);
+  });
+}
